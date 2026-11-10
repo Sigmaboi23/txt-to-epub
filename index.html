@@ -1,0 +1,4136 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>TXT to EPUB</title>
+<meta name="description" content="Turn plain text files into EPUB books on your phone. Works offline; nothing is uploaded.">
+<meta name="color-scheme" content="light dark">
+<meta name="theme-color" content="#f5f1ea" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#161412" media="(prefers-color-scheme: dark)">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="TXT→EPUB">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="format-detection" content="telephone=no">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icon-180.png">
+<link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
+<style>
+/* ==========================================================================
+   TXT → EPUB — styles
+   Mobile-first, iPhone safe areas, light + dark mode, 44px+ touch targets.
+   Inputs use 16px text so iOS Safari doesn't zoom in when you tap them.
+   ========================================================================== */
+:root {
+  --bg: #f5f1ea;
+  --card: #fffdf9;
+  --card-2: #f3eee6;
+  --ink: #1f1b16;
+  --ink-2: #5d564d;
+  --ink-3: #8a8277;
+  --line: #e4ddd2;
+  --accent: #c2410c;
+  --accent-ink: #ffffff;
+  --accent-soft: #fbe7dc;
+  --good: #1f7a4d;
+  --good-soft: #e1f2e8;
+  --bad: #b42318;
+  --bad-soft: #fde8e6;
+  --warn: #8a5a00;
+  --warn-soft: #fbf0d6;
+  --shadow: 0 1px 2px rgba(40, 30, 20, 0.06), 0 4px 16px rgba(40, 30, 20, 0.06);
+  --radius: 18px;
+  --serif: ui-serif, "New York", Georgia, "Iowan Old Style", serif;
+  --sans: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --safe-b: env(safe-area-inset-bottom, 0px);
+  color-scheme: light dark;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #161412;
+    --card: #211e1b;
+    --card-2: #2a2622;
+    --ink: #f3eee7;
+    --ink-2: #c4bcb1;
+    --ink-3: #8f877c;
+    --line: #36312b;
+    --accent: #ff8f5a;
+    --accent-ink: #1b1209;
+    --accent-soft: #3a2519;
+    --good: #5fd39a;
+    --good-soft: #17301f;
+    --bad: #ff8a80;
+    --bad-soft: #3a1b18;
+    --warn: #f3c969;
+    --warn-soft: #362b12;
+    --shadow: 0 1px 2px rgba(0, 0, 0, 0.4), 0 6px 20px rgba(0, 0, 0, 0.25);
+  }
+}
+
+* { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--ink);
+  font: 16px/1.45 var(--sans);
+  -webkit-font-smoothing: antialiased;
+  -webkit-tap-highlight-color: transparent;
+}
+button, input, select, textarea { font: inherit; color: inherit; }
+button { touch-action: manipulation; }
+code { font: 0.9em ui-monospace, Menlo, monospace; background: var(--card-2); padding: 1px 5px; border-radius: 6px; }
+.visually-hidden { position: absolute !important; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; opacity: 0; }
+svg.ic { width: 20px; height: 20px; flex: none; }
+[hidden] { display: none !important; }
+
+.app {
+  max-width: 640px;
+  margin: 0 auto;
+  padding: calc(env(safe-area-inset-top, 0px) + 18px) calc(env(safe-area-inset-right, 0px) + 16px) calc(140px + var(--safe-b)) calc(env(safe-area-inset-left, 0px) + 16px);
+}
+
+/* ---------- header ---------- */
+.top { display: flex; align-items: center; gap: 14px; margin: 6px 4px 18px; }
+.logo { width: 52px; height: 52px; border-radius: 15px; background: var(--accent); color: var(--accent-ink); display: grid; place-items: center; flex: none; box-shadow: var(--shadow); }
+.logo svg { width: 30px; height: 30px; }
+.top h1 { font: 700 26px/1.1 var(--serif); margin: 0; letter-spacing: -0.01em; }
+.top .arrow { color: var(--accent); }
+.tag { margin: 4px 0 0; color: var(--ink-2); font-size: 14.5px; }
+
+/* ---------- cards ---------- */
+.card { background: var(--card); border: 1px solid var(--line); border-radius: var(--radius); box-shadow: var(--shadow); margin: 0 0 14px; }
+.add-card { padding: 18px; text-align: center; }
+.add-card .hint { margin: 10px 4px 0; }
+.add-card.compact { padding: 10px; }
+.add-card.compact .btn.big { min-height: 48px; font-size: 16px; }
+.mode-card { padding: 10px; }
+.mode-card .hint { margin: 8px 6px 2px; }
+.hint { color: var(--ink-2); font-size: 14px; margin: 8px 0; }
+.hint.small { font-size: 13px; color: var(--ink-3); }
+.notice { background: var(--warn-soft); color: var(--warn); border-radius: 14px; padding: 12px 14px; font-size: 14px; margin: 0 0 14px; }
+.notice a { color: inherit; }
+
+/* ---------- buttons ---------- */
+.btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+  min-height: 46px; padding: 0 18px; border-radius: 14px;
+  border: 1px solid var(--line); background: var(--card-2); color: var(--ink);
+  font-weight: 600; font-size: 16px; cursor: pointer; user-select: none; -webkit-user-select: none;
+  transition: transform 0.08s ease, background 0.15s ease, opacity 0.15s;
+}
+.btn:active { transform: scale(0.97); }
+.btn.primary { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
+.btn.big { min-height: 54px; font-size: 17px; border-radius: 16px; width: 100%; }
+.btn.subtle { background: transparent; color: var(--ink-2); font-weight: 500; }
+.btn.small { min-height: 40px; padding: 0 14px; font-size: 15px; border-radius: 12px; }
+.btn[disabled] { opacity: 0.5; pointer-events: none; }
+.icon-btn { width: 44px; height: 44px; border: 0; background: transparent; color: var(--ink-3); display: grid; place-items: center; border-radius: 12px; cursor: pointer; flex: none; }
+.icon-btn svg { width: 20px; height: 20px; }
+.icon-btn:active { background: var(--card-2); }
+.linkish { border: 0; background: none; color: var(--accent); font-weight: 600; padding: 8px 0; cursor: pointer; text-decoration: underline; text-underline-offset: 3px; }
+:focus-visible { outline: 3px solid var(--accent); outline: 3px solid color-mix(in srgb, var(--accent) 55%, transparent); outline-offset: 2px; }
+
+/* ---------- segmented control ---------- */
+.seg { display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; gap: 4px; background: var(--card-2); padding: 4px; border-radius: 14px; }
+.seg button { min-height: 42px; border: 0; border-radius: 11px; background: transparent; font-weight: 600; font-size: 14.5px; color: var(--ink-2); cursor: pointer; padding: 0 6px; }
+.seg button[aria-checked="true"] { background: var(--card); color: var(--ink); box-shadow: 0 1px 3px rgba(0,0,0,0.12); }
+.seg.four { grid-template-columns: repeat(2, 1fr); grid-auto-flow: row; }
+@media (min-width: 480px) { .seg.four { grid-template-columns: repeat(4, 1fr); } }
+
+/* ---------- book cards ---------- */
+.book-list:empty { display: none; }
+.book { padding: 14px; position: relative; }
+.book-top { display: flex; gap: 14px; align-items: flex-start; }
+.cover-slot {
+  width: 64px; height: 96px; flex: none; border-radius: 6px 9px 9px 6px; overflow: hidden; border: 0; padding: 0; cursor: pointer;
+  background: var(--card-2); position: relative; box-shadow: 0 2px 6px rgba(0,0,0,0.18);
+  display: grid; place-items: center; color: var(--ink-3);
+}
+.cover-slot img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.cover-slot .gen { position: absolute; inset: 0; display: flex; flex-direction: column; justify-content: center; align-items: center; padding: 6px 5px; text-align: center; color: #fbf7ef; font: 600 9.5px/1.15 var(--serif); }
+.cover-slot .gen i { display: block; width: 18px; height: 2px; margin: 5px auto 0; border-radius: 2px; }
+.cover-slot .none { font-size: 11px; line-height: 1.2; padding: 4px; text-align: center; }
+.cover-slot .badge { position: absolute; right: 3px; bottom: 3px; width: 20px; height: 20px; border-radius: 10px; background: rgba(0,0,0,0.55); color: #fff; display: grid; place-items: center; }
+.cover-slot .badge svg { width: 12px; height: 12px; }
+.book-main { flex: 1; min-width: 0; }
+.title-input {
+  width: 100%; border: 1px solid transparent; background: transparent; border-radius: 10px;
+  font: 600 17px/1.3 var(--serif); padding: 6px 8px; margin: -6px 0 2px -8px; min-height: 40px;
+}
+.title-input:focus { border-color: var(--line); background: var(--card-2); outline: none; }
+.book-meta { margin: 0; color: var(--ink-2); font-size: 13.5px; }
+.book-out { margin: 4px 0 0; font-size: 13px; color: var(--ink-3); overflow-wrap: anywhere; }
+.book-out b { color: var(--ink-2); font-weight: 600; }
+.book .remove { position: absolute; top: 6px; right: 4px; }
+.book-main { padding-right: 34px; }
+
+.status { display: inline-flex; align-items: center; gap: 6px; margin-top: 8px; font-size: 13.5px; font-weight: 600; padding: 4px 10px; border-radius: 999px; }
+.status svg { width: 15px; height: 15px; }
+.status.ready { background: var(--card-2); color: var(--ink-2); }
+.status.working { background: var(--accent-soft); color: var(--accent); }
+.status.done { background: var(--good-soft); color: var(--good); }
+.status.error { background: var(--bad-soft); color: var(--bad); }
+.status.working::before { content: ""; width: 12px; height: 12px; border-radius: 50%; border: 2px solid currentColor; border-right-color: transparent; animation: spin 0.8s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+.err-text { color: var(--bad); font-size: 14px; margin: 8px 0 0; }
+
+.book-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 12px; }
+.book-actions.one { grid-template-columns: 1fr; }
+
+.book details.more { margin-top: 10px; border-top: 1px solid var(--line); }
+.book details.more > summary { list-style: none; cursor: pointer; padding: 12px 2px 4px; color: var(--accent); font-weight: 600; font-size: 14.5px; display: flex; align-items: center; gap: 6px; min-height: 44px; }
+.book details.more > summary::-webkit-details-marker { display: none; }
+.book details.more > summary::after { content: "›"; transform: rotate(90deg); display: inline-block; transition: transform 0.15s; font-size: 18px; line-height: 1; }
+.book details.more[open] > summary::after { transform: rotate(-90deg); }
+.fields { display: grid; gap: 10px; margin: 8px 0 14px; }
+.warnings { list-style: none; padding: 0; margin: 0 0 12px; display: grid; gap: 6px; }
+.warnings li { background: var(--warn-soft); color: var(--warn); font-size: 13.5px; padding: 8px 10px; border-radius: 10px; }
+.toc-head { font-size: 13px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--ink-3); margin: 6px 0 6px; font-weight: 700; }
+.toc { list-style: none; margin: 0; padding: 0; border: 1px solid var(--line); border-radius: 12px; overflow: hidden; max-height: 360px; overflow-y: auto; -webkit-overflow-scrolling: touch; }
+.toc li { border-top: 1px solid var(--line); }
+.toc li:first-child { border-top: 0; }
+.toc details > summary { list-style: none; display: flex; gap: 10px; align-items: baseline; padding: 10px 12px; cursor: pointer; min-height: 44px; }
+.toc details > summary::-webkit-details-marker { display: none; }
+.toc .t { flex: 1; min-width: 0; font-size: 14.5px; }
+.toc .lv2 .t { padding-left: 14px; }
+.toc .w { font-size: 12.5px; color: var(--ink-3); white-space: nowrap; font-variant-numeric: tabular-nums; }
+.toc .opening .t { font-style: italic; color: var(--ink-2); }
+.toc .excerpt { margin: 0; padding: 2px 12px 12px; font: 14px/1.5 var(--serif); color: var(--ink-2); }
+.toc .excerpt p { margin: 0 0 6px; }
+.src { font-size: 12.5px; color: var(--ink-3); margin: 10px 0 2px; overflow-wrap: anywhere; }
+
+/* combined-mode file order list */
+.order { list-style: none; margin: 8px 0 0; padding: 0; display: grid; gap: 6px; }
+.order li { display: flex; align-items: center; gap: 4px; background: var(--card-2); border-radius: 12px; padding: 2px 2px 2px 12px; }
+.order .n { font-variant-numeric: tabular-nums; color: var(--ink-3); font-size: 13px; width: 22px; }
+.order .f { flex: 1; min-width: 0; font-size: 14px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.order .f small { display: block; color: var(--ink-3); font-size: 12px; }
+.order .bad .f { color: var(--bad); }
+
+/* ---------- panels ---------- */
+.panel > summary { list-style: none; display: flex; align-items: center; gap: 10px; padding: 16px; min-height: 56px; cursor: pointer; font-weight: 650; font-size: 16.5px; }
+.panel > summary::-webkit-details-marker { display: none; }
+.panel > summary .ic { color: var(--accent); }
+.panel > summary > span:not(.sum-val) { flex: none; white-space: nowrap; }
+.panel > summary .sum-val { margin-left: auto; flex: 1; min-width: 0; font-weight: 500; font-size: 13.5px; color: var(--ink-3); text-align: right; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.panel > summary::after { content: "›"; font-size: 22px; color: var(--ink-3); transition: transform 0.15s; margin-left: 4px; }
+.panel[open] > summary::after { transform: rotate(90deg); }
+.panel-body { padding: 0 16px 16px; display: grid; gap: 14px; }
+.row { display: flex; gap: 8px; flex-wrap: wrap; }
+
+.field { display: grid; gap: 6px; }
+.field > span { font-size: 14px; font-weight: 600; color: var(--ink-2); }
+.field small { color: var(--ink-3); font-size: 12.5px; line-height: 1.4; }
+.field input, .field select, .field textarea {
+  width: 100%; min-height: 46px; padding: 10px 12px; border-radius: 12px; border: 1px solid var(--line);
+  background: var(--card-2); font-size: 16px; /* 16px stops iOS zoom-on-focus */
+  -webkit-appearance: none; appearance: none;
+}
+.field select { background-image: linear-gradient(45deg, transparent 50%, var(--ink-3) 50%), linear-gradient(135deg, var(--ink-3) 50%, transparent 50%); background-position: calc(100% - 20px) 50%, calc(100% - 14px) 50%; background-size: 6px 6px; background-repeat: no-repeat; padding-right: 34px; }
+.field textarea { resize: vertical; min-height: 70px; line-height: 1.4; }
+.field input:focus, .field select:focus, .field textarea:focus { outline: none; border-color: var(--accent); }
+
+/* toggles */
+.toggles { display: grid; gap: 2px; border: 1px solid var(--line); border-radius: 14px; overflow: hidden; }
+.toggle { display: flex; align-items: center; gap: 12px; padding: 12px; background: var(--card); cursor: pointer; min-height: 56px; }
+.toggle + .toggle { border-top: 1px solid var(--line); }
+.toggle input { position: absolute; opacity: 0; width: 1px; height: 1px; }
+.toggle .sw { order: 2; margin-left: auto; width: 51px; height: 31px; border-radius: 16px; background: var(--line); position: relative; flex: none; transition: background 0.2s; }
+.toggle .sw::after { content: ""; position: absolute; top: 2px; left: 2px; width: 27px; height: 27px; border-radius: 50%; background: #fff; box-shadow: 0 2px 4px rgba(0,0,0,0.25); transition: transform 0.2s; }
+.toggle input:checked + .sw { background: var(--good); }
+.toggle input:checked + .sw::after { transform: translateX(20px); }
+.toggle input:focus-visible + .sw { outline: 3px solid color-mix(in srgb, var(--accent) 55%, transparent); outline-offset: 2px; }
+.toggle b { display: block; font-weight: 600; font-size: 15px; }
+.toggle small { display: block; color: var(--ink-3); font-size: 12.5px; }
+
+/* style presets */
+.styles { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.style-opt { text-align: left; border: 1.5px solid var(--line); background: var(--card); border-radius: 14px; padding: 10px; cursor: pointer; min-height: 44px; }
+.style-opt[aria-checked="true"] { border-color: var(--accent); background: var(--accent-soft); }
+.style-opt b { display: block; font-size: 14.5px; }
+.style-opt small { display: block; color: var(--ink-3); font-size: 12px; line-height: 1.3; margin-top: 2px; }
+.style-opt .sample { display: block; margin-top: 8px; height: 46px; overflow: hidden; color: var(--ink-2); font-size: 9.5px; line-height: 1.4; }
+.style-opt .sample i { display: block; font-style: normal; }
+.sample.comfortable i + i { text-indent: 1.3em; }
+.sample.spaced i + i { margin-top: 0.5em; }
+.sample.compact { line-height: 1.2; }
+.sample.compact i + i { text-indent: 1em; }
+.sample.large { font-size: 12px; line-height: 1.5; }
+.sample.large i + i { margin-top: 0.4em; }
+.sample.classic { font-family: Georgia, serif; text-align: justify; }
+.sample.classic i + i { text-indent: 1.3em; }
+
+/* cover tray */
+.tray { display: grid; grid-template-columns: repeat(auto-fill, minmax(72px, 1fr)); gap: 10px; }
+.tray:empty { display: none; }
+.tray-item { position: relative; }
+.tray-item button.pick { width: 100%; aspect-ratio: 2 / 3; border-radius: 6px 9px 9px 6px; overflow: hidden; border: 2px solid transparent; padding: 0; background: var(--card-2); cursor: pointer; display: block; }
+.tray-item button.pick img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.tray-item.selected button.pick { border-color: var(--accent); }
+.tray-item .cap { display: block; font-size: 11px; color: var(--ink-3); margin-top: 4px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.tray-item .cap.matched { color: var(--good); }
+.tray-item .del { position: absolute; top: -8px; right: -8px; width: 30px; height: 30px; border-radius: 15px; border: 2px solid var(--card); background: var(--ink); color: var(--card); display: grid; place-items: center; padding: 0; cursor: pointer; }
+.tray-item .del svg { width: 14px; height: 14px; }
+.tray-item .busy { position: absolute; inset: 0; display: grid; place-items: center; font-size: 12px; color: var(--ink-3); }
+
+/* ---------- action bar ---------- */
+.actionbar {
+  position: fixed; left: 0; right: 0; bottom: 0; z-index: 20;
+  padding: 12px calc(env(safe-area-inset-right, 0px) + 16px) calc(12px + var(--safe-b)) calc(env(safe-area-inset-left, 0px) + 16px);
+  background: var(--bg);
+  background: color-mix(in srgb, var(--bg) 82%, transparent);
+  -webkit-backdrop-filter: saturate(1.6) blur(18px); backdrop-filter: saturate(1.6) blur(18px);
+  border-top: 1px solid var(--line);
+}
+.actionbar .actions, .actionbar .progress { max-width: 640px; margin: 0 auto; }
+.actions { display: flex; gap: 10px; }
+.actions .btn.big { flex: 1; }
+#zipBtn { flex: 0 0 auto; width: auto; padding: 0 20px; }
+.progress { margin-bottom: 10px; }
+.progress .bar { height: 6px; background: var(--line); border-radius: 3px; overflow: hidden; }
+.progress .bar span { display: block; height: 100%; width: 0; background: var(--accent); transition: width 0.25s ease; border-radius: 3px; }
+.progress p { margin: 6px 0 0; font-size: 13.5px; color: var(--ink-2); text-align: center; }
+body.typing .actionbar { display: none; } /* iOS keyboard: get the bar out of the way */
+
+/* ---------- sheet ---------- */
+.sheet-wrap { position: fixed; inset: 0; z-index: 40; display: flex; align-items: flex-end; justify-content: center; }
+.sheet-backdrop { position: absolute; inset: 0; background: rgba(0,0,0,0.38); animation: fade 0.2s ease; }
+.sheet { position: relative; width: 100%; max-width: 640px; max-height: 88vh; max-height: 88dvh; overflow-y: auto; -webkit-overflow-scrolling: touch; overscroll-behavior: contain; background: var(--card); border-radius: 22px 22px 0 0; padding: 6px 16px calc(20px + var(--safe-b)); animation: up 0.25s cubic-bezier(.2,.8,.2,1); }
+.sheet-grab { width: 40px; height: 5px; border-radius: 3px; background: var(--line); margin: 4px auto 6px; }
+.sheet-head { display: flex; align-items: center; gap: 8px; }
+.sheet-head h2 { flex: 1; font: 700 19px/1.25 var(--serif); margin: 8px 0; }
+.sheet-body { display: grid; gap: 14px; }
+.sheet-body h3 { font-size: 15px; margin: 4px 0 -4px; }
+.sheet-body p, .sheet-body li { font-size: 15px; color: var(--ink-2); }
+.sheet-body ol { padding-left: 1.3em; margin: 0; display: grid; gap: 6px; }
+.choice-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(80px, 1fr)); gap: 10px; }
+.choice { border: 2px solid transparent; border-radius: 10px; background: var(--card-2); padding: 0; cursor: pointer; aspect-ratio: 2 / 3; overflow: hidden; display: grid; place-items: center; text-align: center; font-size: 12.5px; font-weight: 600; color: var(--ink-2); position: relative; }
+.choice img { width: 100%; height: 100%; object-fit: cover; }
+.choice[aria-pressed="true"] { border-color: var(--accent); }
+.choice .gen { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; padding: 6px; color: #fbf7ef; font: 600 11px/1.2 var(--serif); }
+@keyframes up { from { transform: translateY(40px); opacity: 0.4; } }
+@keyframes fade { from { opacity: 0; } }
+
+/* ---------- misc ---------- */
+.drop-overlay { position: fixed; inset: 0; z-index: 50; background: rgba(0,0,0,0.4); background: color-mix(in srgb, var(--accent) 22%, rgba(0,0,0,0.35)); display: grid; place-items: center; pointer-events: none; }
+.drop-overlay div { background: var(--card); padding: 22px 26px; border-radius: 18px; font-weight: 700; border: 2px dashed var(--accent); }
+.toast { position: fixed; left: 50%; bottom: calc(110px + var(--safe-b)); transform: translate(-50%, 20px); background: var(--ink); color: var(--bg); padding: 12px 16px; border-radius: 14px; font-size: 14.5px; max-width: min(90vw, 480px); opacity: 0; pointer-events: none; transition: opacity 0.2s, transform 0.2s; z-index: 60; text-align: center; }
+.toast.show { opacity: 1; transform: translate(-50%, 0); }
+.foot { text-align: center; color: var(--ink-3); font-size: 13px; padding: 8px 10px 0; }
+.foot p { margin: 6px 0; }
+#offlineState.ok { color: var(--good); font-weight: 600; }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
+}
+
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="i-book" viewBox="0 0 24 24"><path d="M4 5.5A2.5 2.5 0 0 1 6.5 3H20v15H6.5A2.5 2.5 0 0 0 4 20.5v-15Z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><path d="M4 20.5A2.5 2.5 0 0 0 6.5 23H20v-5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><path d="M9 8h7M9 11.5h5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></symbol>
+  <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></symbol>
+  <symbol id="i-share" viewBox="0 0 24 24"><path d="M12 3v12M7.5 7.5 12 3l4.5 4.5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M8 11H6.5A1.5 1.5 0 0 0 5 12.5v7A1.5 1.5 0 0 0 6.5 21h11a1.5 1.5 0 0 0 1.5-1.5v-7a1.5 1.5 0 0 0-1.5-1.5H16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></symbol>
+  <symbol id="i-down" viewBox="0 0 24 24"><path d="M12 3v12M7.5 10.5 12 15l4.5-4.5M5 20h14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+  <symbol id="i-x" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></symbol>
+  <symbol id="i-image" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2.5" fill="none" stroke="currentColor" stroke-width="1.8"/><circle cx="9" cy="10" r="1.8" fill="currentColor"/><path d="m4 18 5-5 3.5 3.5L16 13l4 4" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></symbol>
+  <symbol id="i-check" viewBox="0 0 24 24"><path d="m5 12.5 4.5 4.5L19 7.5" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+  <symbol id="i-alert" viewBox="0 0 24 24"><path d="M12 8v5M12 16.5v.5" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/><circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="1.8"/></symbol>
+  <symbol id="i-up" viewBox="0 0 24 24"><path d="m6 14 6-6 6 6" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+  <symbol id="i-dn" viewBox="0 0 24 24"><path d="m6 10 6 6 6-6" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+  <symbol id="i-gear" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M12 2.8v2.4M12 18.8v2.4M2.8 12h2.4M18.8 12h2.4M5.5 5.5l1.7 1.7M16.8 16.8l1.7 1.7M5.5 18.5l1.7-1.7M16.8 7.2l1.7-1.7" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></symbol>
+  <symbol id="i-text" viewBox="0 0 24 24"><path d="M5 6h14M9 6v13M15 10h5M17.5 10v9" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></symbol>
+</svg>
+
+<div class="app">
+  <header class="top">
+    <div class="logo" aria-hidden="true"><svg><use href="#i-book"/></svg></div>
+    <div>
+      <h1>TXT <span class="arrow">→</span> EPUB</h1>
+      <p class="tag">Turn text files into real books. Everything stays on your device.</p>
+    </div>
+  </header>
+
+  <div class="notice" id="hostNotice" hidden></div>
+
+  <!-- Add files -->
+  <section class="card add-card" id="addCard">
+    <label class="btn primary big" for="txtInput">
+      <svg class="ic"><use href="#i-plus"/></svg><span id="addLabel">Choose TXT files</span>
+    </label>
+    <input type="file" id="txtInput" class="visually-hidden" multiple accept=".txt,.text,.md,.markdown,text/plain">
+    <p class="hint" id="addHint">Pick one or many from Files. You can also drop files anywhere on this page.</p>
+  </section>
+
+  <!-- Separate vs combined -->
+  <section class="card mode-card" id="modeCard" hidden>
+    <div class="seg" role="radiogroup" aria-label="Output">
+      <button type="button" role="radio" data-combine="0">Separate books</button>
+      <button type="button" role="radio" data-combine="1">One combined book</button>
+    </div>
+    <p class="hint" id="modeHint"></p>
+  </section>
+
+  <!-- Books -->
+  <section id="bookList" class="book-list" aria-live="polite"></section>
+
+  <!-- Covers -->
+  <details class="card panel" id="coversPanel">
+    <summary><svg class="ic"><use href="#i-image"/></svg><span>Covers</span><span class="sum-val" id="coverSummary"></span></summary>
+    <div class="panel-body">
+      <div class="seg four" role="radiogroup" aria-label="Cover mode" id="coverModeSeg">
+        <button type="button" role="radio" data-cover-mode="match">Match names</button>
+        <button type="button" role="radio" data-cover-mode="same">Same for all</button>
+        <button type="button" role="radio" data-cover-mode="generated">Text cover</button>
+        <button type="button" role="radio" data-cover-mode="none">None</button>
+      </div>
+      <p class="hint" id="coverModeHint"></p>
+      <div class="tray" id="coverTray"></div>
+      <div class="row">
+        <label class="btn" for="coverInput"><svg class="ic"><use href="#i-plus"/></svg>Add cover images</label>
+        <input type="file" id="coverInput" class="visually-hidden" multiple accept="image/*">
+      </div>
+      <label class="field" id="fallbackField">
+        <span>If no image matches a book</span>
+        <select id="coverFallback">
+          <option value="generated">Use a text cover</option>
+          <option value="none">No cover</option>
+        </select>
+      </label>
+      <p class="hint small">Tip: tap a book’s cover to pick a different one just for that book.</p>
+    </div>
+  </details>
+
+  <!-- Book defaults -->
+  <details class="card panel" id="metaPanel">
+    <summary><svg class="ic"><use href="#i-book"/></svg><span>Details &amp; style</span><span class="sum-val" id="metaSummary"></span></summary>
+    <div class="panel-body">
+      <label class="field">
+        <span>Default author</span>
+        <input type="text" id="defAuthor" autocomplete="off" placeholder="Used when a file doesn’t name one">
+      </label>
+      <label class="field">
+        <span>Default language</span>
+        <select id="defLanguage"></select>
+      </label>
+      <label class="field">
+        <span>Default description</span>
+        <textarea id="defDescription" rows="2" placeholder="Optional. Shown in Apple Books’ info page."></textarea>
+      </label>
+      <div class="field">
+        <span>Reading style</span>
+        <div class="styles" id="styleList" role="radiogroup" aria-label="Reading style"></div>
+      </div>
+    </div>
+  </details>
+
+  <!-- Text options -->
+  <details class="card panel" id="textPanel">
+    <summary><svg class="ic"><use href="#i-text"/></svg><span>Text options</span><span class="sum-val" id="textSummary"></span></summary>
+    <div class="panel-body">
+      <label class="field">
+        <span>Chapters</span>
+        <select id="chapterMode">
+          <option value="auto">Detect automatically</option>
+          <option value="marker">Only split at my marker</option>
+          <option value="none">No chapters (one section)</option>
+        </select>
+      </label>
+      <label class="field">
+        <span>Chapter marker</span>
+        <input type="text" id="marker" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="===CHAPTER===">
+        <small>Lines that start with this become chapters (even in Detect mode). Text after it becomes the chapter title. Wrap in slashes for a pattern, like <code>/^#{1,2} /</code>.</small>
+      </label>
+      <label class="field">
+        <span>Paragraphs</span>
+        <select id="paragraphMode">
+          <option value="auto">Detect automatically</option>
+          <option value="blank">A blank line separates paragraphs</option>
+          <option value="line">Every line is a paragraph</option>
+          <option value="indent">Indented lines start paragraphs</option>
+        </select>
+      </label>
+      <label class="field">
+        <span>Whitespace</span>
+        <select id="whitespace">
+          <option value="normalize">Tidy up (recommended)</option>
+          <option value="preserve">Keep line breaks and spacing exactly</option>
+        </select>
+      </label>
+      <div class="toggles">
+        <label class="toggle"><input type="checkbox" id="smartQuotes"><span class="sw"></span><span><b>Smart quotes</b><small>"straight" → “curly”, it's → it’s</small></span></label>
+        <label class="toggle"><input type="checkbox" id="dashes"><span class="sw"></span><span><b>Dashes &amp; ellipses</b><small>-- → —, ... → …</small></span></label>
+        <label class="toggle"><input type="checkbox" id="fixMojibake"><span class="sw"></span><span><b>Fix garbled characters</b><small>â€™ → ’ (text saved with the wrong encoding)</small></span></label>
+        <label class="toggle"><input type="checkbox" id="emphasis"><span class="sw"></span><span><b>*Asterisks* and _underscores_ → italics</b><small>**double** becomes bold</small></span></label>
+        <label class="toggle"><input type="checkbox" id="removeAuthorNotes"><span class="sw"></span><span><b>Remove author’s notes</b><small>Paragraphs starting with A/N, AN:, Author’s note</small></span></label>
+        <label class="toggle"><input type="checkbox" id="stripGutenberg"><span class="sw"></span><span><b>Strip Project Gutenberg license</b><small>Uses its Title/Author info, drops the boilerplate</small></span></label>
+      </div>
+      <label class="field">
+        <span>Text encoding</span>
+        <select id="encoding"></select>
+        <small>Auto works for almost everything. If you see odd symbols, change it here or per book.</small>
+      </label>
+      <button type="button" class="btn subtle" id="resetSettings">Reset all settings</button>
+    </div>
+  </details>
+
+  <footer class="foot">
+    <p id="offlineState"></p>
+    <p>Files are read and converted on this device. Nothing is uploaded.</p>
+    <p><button type="button" class="linkish" id="helpBtn">How to install &amp; use on iPhone</button></p>
+  </footer>
+</div>
+
+<!-- Sticky action bar -->
+<div class="actionbar" id="actionBar" hidden>
+  <div class="progress" id="progress" hidden>
+    <div class="bar"><span id="progressBar"></span></div>
+    <p id="progressText"></p>
+  </div>
+  <div class="actions" id="actions">
+    <button type="button" class="btn primary big" id="convertBtn">Convert</button>
+    <button type="button" class="btn primary big" id="shareAllBtn" hidden><svg class="ic"><use href="#i-share"/></svg><span>Share all</span></button>
+    <button type="button" class="btn big" id="zipBtn" hidden><svg class="ic"><use href="#i-down"/></svg><span>ZIP</span></button>
+  </div>
+</div>
+
+<!-- Bottom sheet -->
+<div class="sheet-wrap" id="sheet" hidden>
+  <div class="sheet-backdrop" data-close></div>
+  <div class="sheet" role="dialog" aria-modal="true" aria-labelledby="sheetTitle">
+    <div class="sheet-grab" aria-hidden="true"></div>
+    <div class="sheet-head">
+      <h2 id="sheetTitle"></h2>
+      <button type="button" class="icon-btn" data-close aria-label="Close"><svg><use href="#i-x"/></svg></button>
+    </div>
+    <div class="sheet-body" id="sheetBody"></div>
+  </div>
+</div>
+<input type="file" id="oneCoverInput" class="visually-hidden" accept="image/*">
+
+<div class="drop-overlay" id="dropOverlay" hidden><div>Drop TXT files or cover images</div></div>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<script>
+/* ==========================================================================
+   zip.js — a tiny, dependency-free ZIP writer.
+
+   Why not JSZip? EPUB only needs the "write" half of ZIP, and doing it
+   ourselves keeps the app small and fully offline.
+
+   - Entries are written in the order they're added. EPUB requires the
+     "mimetype" file to be first and stored uncompressed — callers pass
+     { compress: false } for it.
+   - Compression uses the browser's native CompressionStream('deflate-raw')
+     (Safari / iOS 16.4+). On older engines it silently falls back to
+     "stored" (no compression). Both produce valid ZIP and EPUB files.
+   ========================================================================== */
+(function (T2E) {
+  'use strict';
+
+  // ---- CRC-32 (required for every ZIP entry) -----------------------------
+  const CRC_TABLE = (() => {
+    const t = new Uint32Array(256);
+    for (let n = 0; n < 256; n++) {
+      let c = n;
+      for (let k = 0; k < 8; k++) c = c & 1 ? 0xEDB88320 ^ (c >>> 1) : c >>> 1;
+      t[n] = c >>> 0;
+    }
+    return t;
+  })();
+
+  function crc32(bytes) {
+    let c = 0xFFFFFFFF;
+    for (let i = 0; i < bytes.length; i++) c = CRC_TABLE[(c ^ bytes[i]) & 0xFF] ^ (c >>> 8);
+    return (c ^ 0xFFFFFFFF) >>> 0;
+  }
+
+  // ---- Native deflate, feature-tested once ----------------------------------
+  async function deflateRaw(bytes) {
+    const stream = new Blob([bytes]).stream().pipeThrough(new CompressionStream('deflate-raw'));
+    return new Uint8Array(await new Response(stream).arrayBuffer());
+  }
+
+  let deflateOK = null;
+  async function canDeflate() {
+    if (deflateOK !== null) return deflateOK;
+    try {
+      if (typeof CompressionStream === 'undefined' || typeof Blob.prototype.stream !== 'function') {
+        deflateOK = false;
+      } else {
+        // Some engines construct the stream but fail when used: do a tiny round-trip.
+        const out = await deflateRaw(new Uint8Array([84, 50, 69]));
+        deflateOK = out instanceof Uint8Array && out.length > 0;
+      }
+    } catch (e) {
+      deflateOK = false;
+    }
+    return deflateOK;
+  }
+
+  function dosDateTime(d) {
+    return {
+      time: (d.getHours() << 11) | (d.getMinutes() << 5) | Math.floor(d.getSeconds() / 2),
+      date: (Math.max(d.getFullYear() - 1980, 0) << 9) | ((d.getMonth() + 1) << 5) | d.getDate(),
+    };
+  }
+
+  const utf8 = new TextEncoder();
+  const isAscii = (s) => /^[\x20-\x7E]*$/.test(s);
+
+  class ZipWriter {
+    constructor() {
+      this.entries = [];
+    }
+
+    /**
+     * Add a file.
+     * @param {string} name   Path inside the archive, e.g. "OEBPS/ch001.xhtml"
+     * @param {string|Uint8Array} data
+     * @param {{compress?: boolean}} [opts]
+     */
+    add(name, data, opts = {}) {
+      const bytes = typeof data === 'string' ? utf8.encode(data) : data;
+      this.entries.push({ name, bytes, compress: opts.compress !== false });
+    }
+
+    /** Build the archive. Returns a Blob. */
+    async toBlob(mimeType = 'application/zip') {
+      const useDeflate = await canDeflate();
+      const { time, date } = dosDateTime(new Date());
+      const chunks = [];
+      const central = [];
+      let offset = 0;
+
+      for (const e of this.entries) {
+        const nameBytes = utf8.encode(e.name);
+        const flags = isAscii(e.name) ? 0 : 0x0800; // bit 11 = UTF-8 file name
+        const crc = crc32(e.bytes);
+        let method = 0;
+        let payload = e.bytes;
+
+        if (e.compress && useDeflate && e.bytes.length > 100) {
+          try {
+            const packed = await deflateRaw(e.bytes);
+            if (packed.length < e.bytes.length) {
+              method = 8;
+              payload = packed;
+            }
+          } catch (err) {
+            /* fall back to stored for this entry */
+          }
+        }
+
+        // Local file header (30 bytes + name)
+        const lh = new DataView(new ArrayBuffer(30));
+        lh.setUint32(0, 0x04034b50, true);
+        lh.setUint16(4, method === 8 ? 20 : 10, true);
+        lh.setUint16(6, flags, true);
+        lh.setUint16(8, method, true);
+        lh.setUint16(10, time, true);
+        lh.setUint16(12, date, true);
+        lh.setUint32(14, crc, true);
+        lh.setUint32(18, payload.length, true);
+        lh.setUint32(22, e.bytes.length, true);
+        lh.setUint16(26, nameBytes.length, true);
+        lh.setUint16(28, 0, true); // no extra field (EPUB requires this for "mimetype")
+        chunks.push(new Uint8Array(lh.buffer), nameBytes, payload);
+
+        // Central directory record (46 bytes + name)
+        const ch = new DataView(new ArrayBuffer(46));
+        ch.setUint32(0, 0x02014b50, true);
+        ch.setUint16(4, 20, true); // made by: MS-DOS, spec 2.0
+        ch.setUint16(6, method === 8 ? 20 : 10, true);
+        ch.setUint16(8, flags, true);
+        ch.setUint16(10, method, true);
+        ch.setUint16(12, time, true);
+        ch.setUint16(14, date, true);
+        ch.setUint32(16, crc, true);
+        ch.setUint32(20, payload.length, true);
+        ch.setUint32(24, e.bytes.length, true);
+        ch.setUint16(28, nameBytes.length, true);
+        ch.setUint16(30, 0, true);
+        ch.setUint16(32, 0, true);
+        ch.setUint16(34, 0, true);
+        ch.setUint16(36, 0, true);
+        ch.setUint32(38, 0, true);
+        ch.setUint32(42, offset, true);
+        central.push(new Uint8Array(ch.buffer), nameBytes);
+
+        offset += 30 + nameBytes.length + payload.length;
+      }
+
+      const centralSize = central.reduce((n, c) => n + c.length, 0);
+      const end = new DataView(new ArrayBuffer(22));
+      end.setUint32(0, 0x06054b50, true);
+      end.setUint16(8, this.entries.length, true);
+      end.setUint16(10, this.entries.length, true);
+      end.setUint32(12, centralSize, true);
+      end.setUint32(16, offset, true);
+
+      return new Blob([...chunks, ...central, new Uint8Array(end.buffer)], { type: mimeType });
+    }
+  }
+
+  T2E.Zip = { ZipWriter, crc32, canDeflate };
+})((globalThis.T2E = globalThis.T2E || {}));
+
+/* ==========================================================================
+   encoding.js — turn raw file bytes into text.
+
+   Auto-detect order:
+     1. Byte-order mark (UTF-8 / UTF-16 LE / UTF-16 BE)
+     2. UTF-16 without a BOM (lots of zero bytes in alternate positions)
+     3. Strict UTF-8 (fails fast on invalid sequences)
+     4. Legacy encodings, scored by how "plausible" the decoded text looks
+        (Western, Cyrillic, Chinese, Japanese, Korean)
+
+   Also includes a "mojibake" repair for the classic garbling where UTF-8
+   text was read as Windows-1252 and saved again (â€™ instead of ’).
+   ========================================================================== */
+(function (T2E) {
+  'use strict';
+
+  /** Encodings offered in the override menu. Unsupported ones are hidden at runtime. */
+  const ENCODINGS = [
+    ['utf-8', 'UTF-8 (Unicode)'],
+    ['utf-16le', 'UTF-16 LE'],
+    ['utf-16be', 'UTF-16 BE'],
+    ['windows-1252', 'Western (Windows-1252 / Latin-1)'],
+    ['iso-8859-15', 'Western (ISO-8859-15)'],
+    ['macintosh', 'Western (Mac Roman)'],
+    ['windows-1250', 'Central European (Windows-1250)'],
+    ['windows-1251', 'Cyrillic (Windows-1251)'],
+    ['koi8-r', 'Cyrillic (KOI8-R)'],
+    ['windows-1253', 'Greek (Windows-1253)'],
+    ['windows-1254', 'Turkish (Windows-1254)'],
+    ['gb18030', 'Chinese Simplified (GB18030 / GBK)'],
+    ['big5', 'Chinese Traditional (Big5)'],
+    ['shift_jis', 'Japanese (Shift_JIS)'],
+    ['euc-jp', 'Japanese (EUC-JP)'],
+    ['euc-kr', 'Korean (EUC-KR)'],
+  ];
+
+  function isSupported(label) {
+    try {
+      new TextDecoder(label);
+      return true;
+    } catch (e) {
+      return false;
+    }
+  }
+
+  function supportedEncodings() {
+    return ENCODINGS.filter(([label]) => isSupported(label));
+  }
+
+  function labelFor(enc) {
+    const hit = ENCODINGS.find(([l]) => l === enc);
+    return hit ? hit[1] : enc;
+  }
+
+  // ---- Plausibility scoring for legacy encodings ----------------------------
+  const COMMON = {
+    zh: '的一是不了在人有我他这个们中来上大为和国地到以说时要就出会可也你对生能而子那得于着下自之年过发后作里用道行所然家种事成方多经么去法学如都同现当没动面起看定天分还进好小部其些主样理心她本前开但因只从想实',
+    ja: 'のにはをたがでてとしれさなるいかもすあこうっ',
+    ko: '이다는의에가을를고하지한그것도로서',
+    ru: 'оеаинтсрвлкмдпуяыьгзбчй',
+  };
+  // kind 'cjk' = 2 bytes per character, 'cyr' = 1 byte per character.
+  // Scores are weighted per byte so the two families compare fairly.
+  const CANDIDATES = [
+    { enc: 'gb18030', kind: 'cjk', test: (c) => c >= 0x4e00 && c <= 0x9fff, common: COMMON.zh },
+    { enc: 'big5', kind: 'cjk', test: (c) => c >= 0x4e00 && c <= 0x9fff, common: COMMON.zh },
+    { enc: 'shift_jis', kind: 'cjk', test: (c) => (c >= 0x3040 && c <= 0x30ff) || (c >= 0x4e00 && c <= 0x9fff), common: COMMON.ja },
+    { enc: 'euc-jp', kind: 'cjk', test: (c) => (c >= 0x3040 && c <= 0x30ff) || (c >= 0x4e00 && c <= 0x9fff), common: COMMON.ja },
+    { enc: 'euc-kr', kind: 'cjk', test: (c) => c >= 0xac00 && c <= 0xd7af, common: COMMON.ko },
+    { enc: 'windows-1251', kind: 'cyr', test: (c) => c >= 0x0430 && c <= 0x045f, common: COMMON.ru },
+    { enc: 'koi8-r', kind: 'cyr', test: (c) => c >= 0x0430 && c <= 0x045f, common: COMMON.ru },
+  ];
+
+  function scoreDecoded(text, cand) {
+    const cjk = cand.kind === 'cjk';
+    let score = 0;
+    for (const ch of text) {
+      const c = ch.codePointAt(0);
+      if (c < 0x80) continue;
+      if (c === 0xfffd) score -= 10;
+      else if (c >= 0x80 && c <= 0x9f) score -= 5; // C1 control characters = wrong guess
+      else if (c >= 0xe000 && c <= 0xf8ff) score -= 5; // private use area
+      else if (cand.common.includes(ch)) score += cjk ? 8 : 4;
+      else if (cand.test(c)) score += cjk ? 2 : 1; // (upper-case Cyrillic scores 0: rare mid-word)
+      else if (c >= 0x0410 && c <= 0x042f && !cjk) score += 0;
+      else if ((c >= 0x3000 && c <= 0x303f) || (c >= 0xff00 && c <= 0xffef)) score += cjk ? 2 : -3; // CJK punctuation
+      else score -= 3; // box drawing, odd symbols = wrong guess
+    }
+    return score;
+  }
+
+  function guessLegacy(bytes) {
+    const sample = bytes.subarray(0, Math.min(bytes.length, 64 * 1024));
+    let high = 0;
+    let adjacent = 0;
+    for (let i = 0; i < sample.length; i++) {
+      if (sample[i] >= 0x80) {
+        high++;
+        if ((i > 0 && sample[i - 1] >= 0x80) || (i + 1 < sample.length && sample[i + 1] >= 0x80)) adjacent++;
+      }
+    }
+    // Western text has isolated accented letters / smart quotes between ASCII.
+    // Cyrillic and CJK text has long runs of high bytes.
+    if (high === 0 || adjacent / high < 0.5) return { encoding: 'windows-1252', confidence: 'guess' };
+
+    let best = { enc: 'windows-1252', score: -Infinity };
+    for (const cand of CANDIDATES) {
+      if (!isSupported(cand.enc)) continue;
+      let text;
+      try {
+        text = new TextDecoder(cand.enc).decode(sample);
+      } catch (e) {
+        continue;
+      }
+      const score = scoreDecoded(text, cand);
+      if (score > best.score) best = { enc: cand.enc, score };
+    }
+    if (best.score <= 0) return { encoding: 'windows-1252', confidence: 'guess' };
+    return { encoding: best.enc, confidence: 'guess' };
+  }
+
+  /**
+   * Decode bytes to text.
+   * @param {Uint8Array} bytes
+   * @param {string} [forced]  'auto' or an encoding label
+   * @returns {{text: string, encoding: string, confidence: 'certain'|'guess'|'manual', badChars: number}}
+   */
+  function decode(bytes, forced) {
+    let encoding;
+    let confidence;
+    let start = 0;
+
+    if (forced && forced !== 'auto') {
+      encoding = forced;
+      confidence = 'manual';
+      // Skip a BOM that matches the forced encoding
+      if (forced === 'utf-8' && bytes[0] === 0xef && bytes[1] === 0xbb && bytes[2] === 0xbf) start = 3;
+      if (forced === 'utf-16le' && bytes[0] === 0xff && bytes[1] === 0xfe) start = 2;
+      if (forced === 'utf-16be' && bytes[0] === 0xfe && bytes[1] === 0xff) start = 2;
+    } else if (bytes[0] === 0xef && bytes[1] === 0xbb && bytes[2] === 0xbf) {
+      encoding = 'utf-8'; confidence = 'certain'; start = 3;
+    } else if (bytes[0] === 0xff && bytes[1] === 0xfe) {
+      encoding = 'utf-16le'; confidence = 'certain'; start = 2;
+    } else if (bytes[0] === 0xfe && bytes[1] === 0xff) {
+      encoding = 'utf-16be'; confidence = 'certain'; start = 2;
+    } else {
+      // UTF-16 without BOM?
+      const n = Math.min(bytes.length, 4096);
+      let evenZero = 0;
+      let oddZero = 0;
+      for (let i = 0; i < n; i++) if (bytes[i] === 0) (i % 2 ? oddZero++ : evenZero++);
+      if (n > 16 && oddZero > n * 0.2 && evenZero < n * 0.02) {
+        encoding = 'utf-16le'; confidence = 'guess';
+      } else if (n > 16 && evenZero > n * 0.2 && oddZero < n * 0.02) {
+        encoding = 'utf-16be'; confidence = 'guess';
+      } else {
+        try {
+          const text = new TextDecoder('utf-8', { fatal: true }).decode(bytes);
+          return { text, encoding: 'utf-8', confidence: 'certain', badChars: 0 };
+        } catch (e) {
+          const g = guessLegacy(bytes);
+          encoding = g.encoding;
+          confidence = g.confidence;
+        }
+      }
+    }
+
+    let text;
+    try {
+      text = new TextDecoder(encoding).decode(bytes.subarray(start));
+    } catch (e) {
+      text = new TextDecoder('utf-8').decode(bytes.subarray(start));
+      encoding = 'utf-8';
+    }
+    const badChars = (text.match(/\uFFFD/g) || []).length;
+    return { text, encoding, confidence, badChars };
+  }
+
+  /** Rough check that bytes are text at all (not a .docx/.pdf renamed to .txt). */
+  function looksBinary(bytes) {
+    const n = Math.min(bytes.length, 8192);
+    if (n === 0) return false;
+    // PDF, ZIP (docx/epub), RTF are common mistakes
+    const head = String.fromCharCode(...bytes.subarray(0, 5));
+    if (head.startsWith('%PDF') || head.startsWith('PK\u0003\u0004')) return true;
+    const isUtf16 = (bytes[0] === 0xff && bytes[1] === 0xfe) || (bytes[0] === 0xfe && bytes[1] === 0xff);
+    if (isUtf16) return false;
+    let zeros = 0;
+    let ctrl = 0;
+    for (let i = 0; i < n; i++) {
+      const b = bytes[i];
+      if (b === 0) zeros++;
+      else if (b < 9 || (b > 13 && b < 32 && b !== 27)) ctrl++;
+    }
+    // Lots of zeros in a pattern = UTF-16 without BOM, handled by decode()
+    if (zeros > n * 0.2) return false;
+    return zeros > 0 || ctrl > n * 0.05;
+  }
+
+  function looksLikeRtf(bytes) {
+    return bytes[0] === 0x7b && bytes[1] === 0x5c && bytes[2] === 0x72 && bytes[3] === 0x74 && bytes[4] === 0x66; // {\rtf
+  }
+
+  // ---- Mojibake repair (UTF-8 read as Windows-1252) -------------------------
+  let REV = null; // char -> byte for windows-1252
+  let MOJI_RE = null;
+  function buildMojibakeTables() {
+    if (REV) return;
+    REV = new Map();
+    const dec = new TextDecoder('windows-1252');
+    for (let b = 0x80; b <= 0xff; b++) REV.set(dec.decode(new Uint8Array([b])), b);
+    const cont = [];
+    const lead = [];
+    for (const [ch, b] of REV) {
+      if (b >= 0x80 && b <= 0xbf) cont.push(ch);
+      if (b >= 0xc2 && b <= 0xf4) lead.push(ch);
+    }
+    const esc = (arr) => arr.map((c) => '\\u' + c.charCodeAt(0).toString(16).padStart(4, '0')).join('');
+    MOJI_RE = new RegExp('[' + esc(lead) + '][' + esc(cont) + ']{1,3}', 'g');
+  }
+
+  /**
+   * Repair "â€™"-style garbling. Only touches sequences that decode to a
+   * single valid UTF-8 character, and only when the pattern shows up more
+   * than once (so genuine text like "Ã" in Portuguese is left alone).
+   * @returns {{text: string, fixed: number}}
+   */
+  function repairMojibake(text) {
+    buildMojibakeTables();
+    const matches = text.match(MOJI_RE);
+    if (!matches || matches.length < 2) return { text, fixed: 0 };
+    const dec = new TextDecoder('utf-8', { fatal: true });
+    let fixed = 0;
+    const out = text.replace(MOJI_RE, (seq) => {
+      const bytes = [];
+      for (const ch of seq) bytes.push(REV.get(ch));
+      const lead = bytes[0];
+      const need = lead >= 0xf0 ? 4 : lead >= 0xe0 ? 3 : 2;
+      if (bytes.length < need) return seq;
+      try {
+        const head = dec.decode(new Uint8Array(bytes.slice(0, need)));
+        if ([...head].length !== 1) return seq;
+        fixed++;
+        // Keep any trailing continuation chars that weren't part of this character
+        return head + seq.slice(need);
+      } catch (e) {
+        return seq;
+      }
+    });
+    // A common leftover: "â€" whose third byte (0x9D) was lost → right double quote
+    const cleaned = fixed > 0 ? out.replace(/â€(?=[\s.,;:!?)]|$)/g, '”') : out;
+    return { text: cleaned, fixed };
+  }
+
+  T2E.Encoding = { decode, supportedEncodings, labelFor, looksBinary, looksLikeRtf, repairMojibake };
+})((globalThis.T2E = globalThis.T2E || {}));
+
+/* ==========================================================================
+   typography.js — small, safe text polish.
+
+   - Smart quotes: "straight" → “curly”, it's → it’s, 'tis → ’tis
+   - Dashes: -- / --- → em dash, spaced " - " → spaced en dash
+   - Ellipses: ... and . . . → …
+   - Inline emphasis markers: _italic_ / *italic* / **bold** (optional)
+
+   Everything here works on one paragraph at a time, so a stray quote can
+   never "leak" across paragraphs.
+   ========================================================================== */
+(function (T2E) {
+  'use strict';
+
+  // Characters after which a quote is an *opening* quote
+  const OPENERS = '\\s(\\[{\u2014\u2013\u2012\u2010/\\-';
+
+  const ELISIONS = /^(?:tis|twas|twere|twill|em|cause|cos|coz|til|till|round|bout|n|s|ere|neath|nother|kay|sup|ello)\b/i;
+
+  function smartQuotes(s) {
+    if (s.indexOf("'") === -1 && s.indexOf('"') === -1) return s;
+
+    // 1) Apostrophes inside words: don't, it's, rock'n'roll, 90's
+    s = s.replace(/([\p{L}\p{N}])'(?=[\p{L}\p{N}])/gu, '$1’');
+
+    // 2) Leading elisions and decades: 'tis, 'em, '90s → ’
+    s = s.replace(new RegExp(`(^|[${OPENERS}“"])'(?=\\d{2}s?\\b)`, 'gu'), '$1’');
+    s = s.replace(new RegExp(`(^|[${OPENERS}])'(?=[\\p{L}])`, 'gu'), (m, pre, offset, str) => {
+      const rest = str.slice(offset + m.length);
+      return ELISIONS.test(rest) ? pre + '’' : pre + '‘';
+    });
+
+    // 3) Remaining opening singles (e.g. after an opening double quote)
+    s = s.replace(new RegExp(`(^|[${OPENERS}“"])'`, 'gu'), '$1‘');
+
+    // 4) Everything else is a closing single / apostrophe
+    s = s.replace(/'/g, '’');
+
+    // 5) Doubles: opening after start/space/opening punctuation, closing otherwise
+    s = s.replace(new RegExp(`(^|[${OPENERS}‘])"`, 'gu'), '$1“');
+    s = s.replace(/"/g, '”');
+    return s;
+  }
+
+  function dashesAndEllipses(s) {
+    return s
+      .replace(/---/g, '—')
+      .replace(/--/g, '—')
+      .replace(/ - /g, ' – ')
+      .replace(/\.\s?\.\s?\./g, '…');
+  }
+
+  function collapseSpaces(s) {
+    return s.replace(/[ \t ]{2,}/g, ' ').trim();
+  }
+
+  /**
+   * Apply the plain-text cleanups chosen in settings.
+   * @param {string} s
+   * @param {{smartQuotes?: boolean, dashes?: boolean}} opts
+   */
+  function polish(s, opts) {
+    if (opts.dashes) s = dashesAndEllipses(s);
+    if (opts.smartQuotes) s = smartQuotes(s);
+    return s;
+  }
+
+  /**
+   * Convert emphasis markers in ALREADY-ESCAPED HTML text to tags.
+   * **bold**, *italic*, _italic_ — only when the markers hug words.
+   */
+  function emphasisToHtml(html) {
+    const before = '(^|[\\s(\\[{“‘"\'—–-])';
+    const after = '(?=$|[\\s)\\]}”’"\'.,;:!?—–-])';
+    html = html.replace(new RegExp(before + '\\*\\*(?=\\S)([^*]*?\\S)\\*\\*' + after, 'gu'), '$1<strong>$2</strong>');
+    html = html.replace(new RegExp(before + '\\*(?=\\S)([^*]*?\\S)\\*' + after, 'gu'), '$1<em>$2</em>');
+    html = html.replace(new RegExp(before + '_(?=\\S)([^_]*?\\S)_' + after, 'gu'), '$1<em>$2</em>');
+    return html;
+  }
+
+  /**
+   * Title-case a heading that is SHOUTED IN ALL CAPS ("CHAPTER IV." → "Chapter IV").
+   * Leaves mixed-case headings alone. Roman numerals stay upper case.
+   */
+  const SMALL_WORDS = new Set(['a', 'an', 'and', 'as', 'at', 'but', 'by', 'for', 'in', 'nor', 'of', 'on', 'or', 'the', 'to', 'up', 'via', 'vs', 'with', 'from', 'into']);
+  const ROMAN = /^(?=[MDCLXVI])M{0,4}(CM|CD|D?C{0,3})(XC|XL|L?X{0,3})(IX|IV|V?I{0,3})$/;
+  function tameCaps(s) {
+    if (/\p{Ll}/u.test(s) || !/\p{Lu}.*\p{Lu}/u.test(s)) return s;
+    let i = 0;
+    return s.replace(/[\p{L}'’]+/gu, (w, offset, str) => {
+      // First word, or first word after ". : ! ? —" starts with a capital
+      const first = i++ === 0 || /[.:!?–—-]\s*$/.test(str.slice(0, offset));
+      const bare = w.replace(/[^\p{L}]/gu, '');
+      if (ROMAN.test(bare)) return w; // keep numerals: IV, XII
+      const lower = w.toLowerCase();
+      if (!first && SMALL_WORDS.has(lower)) return lower;
+      return lower.charAt(0).toUpperCase() + lower.slice(1);
+    });
+  }
+
+  T2E.Typography = { smartQuotes, dashesAndEllipses, collapseSpaces, polish, emphasisToHtml, tameCaps };
+})((globalThis.T2E = globalThis.T2E || {}));
+
+/* ==========================================================================
+   parser.js — plain text → structured book.
+
+   Output shape (used by the preview and by epub.js):
+   {
+     title, baseTitle, titleSource,      // 'gutenberg' | 'header' | 'first-line' | 'chapter' | 'filename'
+     author, language, description,
+     sections: [{ title, label, sub, level, inToc, opening, paras: [...] , words }],
+     hadHeadings, layout, stats: { words, chapters }, warnings: []
+   }
+   A paragraph is one of:
+     { k: 'p', t: 'text' }            normal paragraph
+     { k: 'br', lines: ['a','b'] }    lines kept as-is (verse, letters, preserved whitespace)
+     { k: 'scene' }                   scene break (***, ~~~, oOo …)
+     { k: 'gap' }                     extra vertical space (preserve mode)
+
+   Tuned for: fanfic / web-novel exports (FanFicFare, AO3 copy-paste,
+   "Chapter 12: Title" headings, A/N notes, oOo scene breaks) and
+   public-domain books (Project Gutenberg headers, hard-wrapped lines,
+   "CHAPTER IV." + subtitle on the next line, duplicate contents lists).
+   ========================================================================== */
+(function (T2E) {
+  'use strict';
+  const Typo = T2E.Typography;
+
+  // ------------------------------------------------------------------ numbers
+  const ROMAN_RE = /^(?=[MDCLXVI])M{0,4}(CM|CD|D?C{0,3})(XC|XL|L?X{0,3})(IX|IV|V?I{0,3})$/i;
+  function romanToInt(s) {
+    const v = { I: 1, V: 5, X: 10, L: 50, C: 100, D: 500, M: 1000 };
+    s = s.toUpperCase();
+    let n = 0;
+    for (let i = 0; i < s.length; i++) {
+      const a = v[s[i]];
+      const b = v[s[i + 1]] || 0;
+      n += a < b ? -a : a;
+    }
+    return n;
+  }
+  const WORD_NUMS = {
+    zero: 0, one: 1, two: 2, three: 3, four: 4, five: 5, six: 6, seven: 7, eight: 8, nine: 9, ten: 10,
+    eleven: 11, twelve: 12, thirteen: 13, fourteen: 14, fifteen: 15, sixteen: 16, seventeen: 17,
+    eighteen: 18, nineteen: 19, twenty: 20, thirty: 30, forty: 40, fifty: 50, sixty: 60, seventy: 70,
+    eighty: 80, ninety: 90, hundred: 100,
+  };
+  const ORDINALS = {
+    first: 1, second: 2, third: 3, fourth: 4, fifth: 5, sixth: 6, seventh: 7, eighth: 8, ninth: 9,
+    tenth: 10, eleventh: 11, twelfth: 12, final: 999, last: 999,
+  };
+  function wordToInt(s) {
+    const parts = s.toLowerCase().split(/[\s-]+/).filter((p) => p && p !== 'and');
+    if (!parts.length) return null;
+    if (parts.length === 1 && parts[0] in ORDINALS) return ORDINALS[parts[0]];
+    let cur = 0;
+    for (const p of parts) {
+      if (!(p in WORD_NUMS)) return null;
+      const v = WORD_NUMS[p];
+      cur = v === 100 ? (cur || 1) * 100 : cur + v;
+    }
+    return cur;
+  }
+  function cjkToInt(s) {
+    s = s.replace(/[０-９]/g, (d) => String.fromCharCode(d.charCodeAt(0) - 0xfee0));
+    if (/^\d+$/.test(s)) return parseInt(s, 10);
+    const digit = { 零: 0, 〇: 0, 一: 1, 二: 2, 两: 2, 三: 3, 四: 4, 五: 5, 六: 6, 七: 7, 八: 8, 九: 9 };
+    const unit = { 十: 10, 百: 100, 千: 1000, 万: 10000 };
+    let total = 0;
+    let cur = 0;
+    for (const ch of s) {
+      if (ch in digit) cur = digit[ch];
+      else if (ch in unit) {
+        total += (cur || 1) * unit[ch];
+        cur = 0;
+      }
+    }
+    return total + cur;
+  }
+  /** Read a chapter number at the start of s: 12 / XII / twelve / twenty-three. */
+  function readNumber(s) {
+    let m;
+    if ((m = /^(\d{1,4})(?!\d)/.exec(s))) return { value: parseInt(m[1], 10), length: m[0].length };
+    if ((m = /^([０-９]{1,4})/.exec(s))) return { value: cjkToInt(m[1]), length: m[0].length };
+    if ((m = /^([ivxlcdm]{1,8})(?![\p{L}\p{N}])/iu.exec(s)) && ROMAN_RE.test(m[1])) {
+      return { value: romanToInt(m[1]), length: m[1].length };
+    }
+    if ((m = /^[a-z]+(?:[\s-]+[a-z]+){0,4}/i.exec(s))) {
+      const tokens = [];
+      const re = /[a-z]+/gi;
+      let t;
+      while ((t = re.exec(m[0]))) tokens.push({ end: t.index + t[0].length });
+      for (let n = tokens.length; n >= 1; n--) {
+        const sub = m[0].slice(0, tokens[n - 1].end);
+        const v = wordToInt(sub);
+        if (v !== null) return { value: v, length: sub.length };
+      }
+    }
+    return null;
+  }
+
+  // ----------------------------------------------------------- line helpers
+  const isBlank = (s) => !s || !/\S/.test(s);
+  const words = (s) => s.trim().split(/\s+/).filter(Boolean);
+
+  /** Remove decoration around a heading: "=== Chapter 3 ===", "~Prologue~", "[Ch. 2]". */
+  function stripDecor(s) {
+    s = s.trim();
+    const pairs = [['[', ']'], ['【', '】'], ['「', '」'], ['『', '』'], ['(', ')'], ['<', '>'], ['《', '》']];
+    for (const [a, b] of pairs) {
+      if (s.startsWith(a) && s.endsWith(b) && s.length > 2) s = s.slice(a.length, -b.length).trim();
+    }
+    return s
+      .replace(/^[\s=\-~*#_•·◆◇★☆|+✦✧❖]+/u, '')
+      .replace(/[\s=\-~*#_•·◆◇★☆|+✦✧❖]+$/u, '')
+      .trim();
+  }
+
+  function isSceneBreak(t) {
+    t = (t || '').trim();
+    if (!t || t.length > 40) return false;
+    if (/^[\s*~=_#•·+§◇◆★☆♦♥※⁂°º\-–—<>|✦✧❖]+$/u.test(t)) {
+      const sym = t.replace(/\s/g, '');
+      if (/^[-–—]+$/.test(sym)) return sym.length >= 3;
+      if (/^[<>]$/.test(sym)) return false;
+      return sym.length >= 1;
+    }
+    if (/^[\s\-~=*]*(?:o+O+o+|O+o+O+|x+X+x+|X+x+X+|0o0|o0o)[\s\-~=*]*$/.test(t)) return true;
+    if (/^[\s\-~=*]+[xXoO+][\s\-~=*]+$/.test(t)) return true;
+    return false;
+  }
+
+  function isTitleCase(s) {
+    const ws = words(s).filter((w) => /\p{L}{4,}/u.test(w));
+    if (!ws.length) return true;
+    const caps = ws.filter((w) => /^[^\p{L}]*\p{Lu}/u.test(w)).length;
+    return caps / ws.length >= 0.6;
+  }
+  const isAllCaps = (s) => /\p{Lu}/u.test(s) && !/\p{Ll}/u.test(s);
+
+  // --------------------------------------------------------- heading lines
+  const PREFIXES = [
+    [/^(chapter|chapitre|kapitel|cap[ií]tulo|capitolo|hoofdstuk|rozdzia[łl]|глава)\s*/iu, 'chapter'],
+    [/^(chap\.?|ch\.)\s*/i, 'chapter'],
+    [/^(ch)\s*(?=\d)/i, 'chapter'],
+    [/^(part|book|volume|vol\.|livre|teil|parte|часть|том)\s+/iu, 'part'],
+    [/^(act|arc)\s+/i, 'part'],
+    [/^(episode|ep\.|section|stave|canto|letter|entry|day|lesson|interlude|story)\s+/i, 'chapter-weak'],
+  ];
+  const SPECIAL_RE = /^(prologue|epilogue|preface|foreword|introduction|afterword|interlude|intermission|author['’]?s note|a note from the author|acknowledge?ments?|dedication|appendix|glossary|bonus chapter|side story|omake|postscript|coda|finale)\b(.*)$/i;
+  const CJK_RE = /^第\s*([0-9０-９零〇一二三四五六七八九十百千万两]+)\s*([章节節回卷部篇集话話幕])\s*(.*)$/u;
+  const CJK_SPECIAL_RE = /^(序章|序言|序|楔子|引子|尾声|尾聲|后记|後記|番外.{0,20}|终章|終章|前言|完结感言)$/u;
+
+  function cleanRest(rest) {
+    return rest.replace(/^\s*[.:：、)\]|\-–—]+\s*/u, '').trim();
+  }
+
+  /** Classify one trimmed line. Returns a heading candidate or null. */
+  function classifyLine(trimmed) {
+    if (!trimmed || trimmed.length > 120) return null;
+    if (isSceneBreak(trimmed)) return null;
+
+    const md = /^(#{1,3})\s+(\S.*?)\s*#*$/.exec(trimmed);
+    if (md) return { type: 'md', kind: 'md', label: md[2], rest: '', key: 'md:' + md[2].toLowerCase() };
+
+    const core = stripDecor(trimmed);
+    if (!core || !/[\p{L}\p{N}]/u.test(core) || core.length > 100) return null;
+    let m;
+
+    if ((m = CJK_RE.exec(core))) {
+      const type = '卷部篇集'.includes(m[2]) ? 'part' : 'chapter';
+      const rest = cleanRest(m[3]);
+      if (rest.length > 40) return null;
+      const num = cjkToInt(m[1]);
+      return { type, kind: 'cjk', num, label: core.slice(0, core.length - m[3].length).trim(), rest, key: type + ':' + num };
+    }
+    if (CJK_SPECIAL_RE.test(core)) return { type: 'special', kind: 'cjk', label: core, rest: '', key: 's:' + core };
+
+    for (const [re, type] of PREFIXES) {
+      if (!(m = re.exec(core))) continue;
+      const after = core.slice(m[0].length);
+      const num = readNumber(after);
+      if (!num) continue;
+      const restRaw = after.slice(num.length);
+      const hasSep = /^\s*[.:)\]|\-–—]/.test(restRaw);
+      const rest = cleanRest(restRaw);
+      if (rest) {
+        if (!hasSep && /^\p{Ll}/u.test(rest)) return null; // "Chapter 5 is where…" = prose
+        if (rest.length > 80) return null;
+        if (/[.,;]$/.test(rest) && words(rest).length > 8) return null;
+      }
+      const label = (m[0] + after.slice(0, num.length)).trim();
+      const kind = type === 'chapter-weak' ? 'weak' : 'prefix';
+      return {
+        type: type === 'chapter-weak' ? 'chapter-weak' : type,
+        kind,
+        prefix: m[1].toLowerCase().replace('.', ''),
+        num: num.value,
+        label,
+        rest,
+        key: (type === 'part' ? 'part:' : 'chapter:') + num.value,
+      };
+    }
+
+    if ((m = SPECIAL_RE.exec(core))) {
+      const restRaw = m[2];
+      const rest = cleanRest(restRaw);
+      if (rest) {
+        const hasSep = /^\s*[.:)\]|\-–—\d]/.test(restRaw);
+        if (!hasSep && /^\s*\p{Ll}/u.test(restRaw)) return null;
+        if (rest.length > 60 || /[!.]$/.test(rest)) return null;
+      }
+      return { type: 'special', kind: 'special', label: m[1], rest, key: 's:' + core.toLowerCase() };
+    }
+
+    if ((m = /^([IVXLCDM]{1,8})\.?$/.exec(core)) && ROMAN_RE.test(m[1])) {
+      const num = romanToInt(m[1]);
+      return { type: 'roman', kind: 'roman', num, label: m[1], rest: '', key: 'chapter:' + num };
+    }
+    if ((m = /^([IVXLCDM]{1,8})[.:]\s+(\p{Lu}.{0,80})$/u.exec(core)) && ROMAN_RE.test(m[1])) {
+      const num = romanToInt(m[1]);
+      return { type: 'roman', kind: 'roman', num, label: m[1], rest: m[2], key: 'chapter:' + num };
+    }
+    if ((m = /^(\d{1,4})\.?$/.exec(core))) {
+      const num = parseInt(m[1], 10);
+      return { type: 'number', kind: 'number', num, label: m[1], rest: '', key: 'chapter:' + num };
+    }
+    if ((m = /^(\d{1,4})(?:[.:)]|\s+[-–—|])\s+(\p{Lu}.{0,80})$/u.exec(core))) {
+      if (/[.,;]$/.test(m[2]) && words(m[2]).length > 6) return null;
+      const num = parseInt(m[1], 10);
+      return { type: 'numtitle', kind: 'number', num, label: m[1], rest: m[2], key: 'chapter:' + num };
+    }
+    if (
+      isAllCaps(core) &&
+      (core.match(/\p{L}/gu) || []).length >= 3 &&
+      core.length <= 60 &&
+      words(core).length <= 10 &&
+      !/[!,;]$/.test(core) &&
+      !/^(THE END|FIN|END|TO BE CONTINUED)\.?$/.test(core)
+    ) {
+      return { type: 'caps', kind: 'caps', label: core, rest: '', key: 'caps:' + core.toLowerCase() };
+    }
+    return null;
+  }
+
+  // ------------------------------------------------------------ layout sniff
+  /** Work out how paragraphs are laid out in this file. */
+  function analyzeLayout(lines) {
+    const lens = [];
+    let blankRuns = 0;
+    let indented = 0;
+    let prevBlank = true;
+    for (const l of lines) {
+      if (isBlank(l)) {
+        if (!prevBlank) blankRuns++;
+        prevBlank = true;
+      } else {
+        lens.push(l.replace(/\s+$/, '').length);
+        if (/^[ \t　]+\S/.test(l)) indented++;
+        prevBlank = false;
+      }
+    }
+    const n = lens.length || 1;
+    lens.sort((a, b) => a - b);
+    const p90 = lens[Math.floor(0.9 * (lens.length - 1))] || 0;
+    let W = null;
+    if (p90 >= 40 && p90 <= 100) {
+      const near = lens.filter((x) => x >= p90 * 0.8 && x <= p90 + 2).length;
+      if (near / n >= 0.4) W = p90; // hard-wrapped at ~W characters
+    }
+    const blankRatio = blankRuns / n;
+    const indentRatio = indented / n;
+    let mode;
+    if (blankRatio >= 0.08) mode = 'blank';
+    else if (W) mode = 'indent';
+    else mode = 'line';
+    return { W, mode, blankRatio, indentRatio, hasBlanks: blankRatio >= 0.08 };
+  }
+
+  // ---------------------------------------------------------- metadata sniff
+  const LANG_NAMES = {
+    english: 'en', french: 'fr', german: 'de', spanish: 'es', italian: 'it', portuguese: 'pt', dutch: 'nl',
+    latin: 'la', chinese: 'zh', japanese: 'ja', korean: 'ko', russian: 'ru', finnish: 'fi', swedish: 'sv',
+    danish: 'da', norwegian: 'no', polish: 'pl', greek: 'el', hungarian: 'hu', czech: 'cs', esperanto: 'eo',
+    catalan: 'ca', tagalog: 'tl', welsh: 'cy', irish: 'ga', hebrew: 'he', arabic: 'ar', turkish: 'tr',
+    ukrainian: 'uk', vietnamese: 'vi', indonesian: 'id', hindi: 'hi', bulgarian: 'bg', romanian: 'ro',
+  };
+  function langFromName(s) {
+    if (!s) return null;
+    s = s.trim().toLowerCase();
+    if (/^[a-z]{2,3}(-[a-z0-9]{2,8})*$/i.test(s) && s.length <= 5) return s;
+    const first = s.split(/[\s,;/]+/)[0];
+    return LANG_NAMES[first] || null;
+  }
+
+  function sniffScript(text) {
+    const sample = text.slice(0, 4000);
+    const count = (re) => (sample.match(re) || []).length;
+    const kana = count(/[぀-ヿ]/g);
+    const han = count(/[一-鿿]/g);
+    const hangul = count(/[가-힯]/g);
+    const cyr = count(/[Ѐ-ӿ]/g);
+    const greek = count(/[Ͱ-Ͽ]/g);
+    const arabic = count(/[؀-ۿ]/g);
+    const hebrew = count(/[֐-׿]/g);
+    const latin = count(/[A-Za-z]/g);
+    const top = Math.max(latin, kana + han, hangul, cyr, greek, arabic, hebrew);
+    if (top === 0 || top === latin) return null;
+    if (top === kana + han) return kana > han * 0.1 ? 'ja' : 'zh';
+    if (top === hangul) return 'ko';
+    if (top === cyr) return 'ru';
+    if (top === greek) return 'el';
+    if (top === arabic) return 'ar';
+    if (top === hebrew) return 'he';
+    return null;
+  }
+
+  /** Project Gutenberg: pull metadata and cut the license boilerplate. */
+  function stripGutenberg(text, meta, warnings) {
+    const start = /^.*\*{3}\s*START OF (?:THE|THIS) PROJECT GUTENBERG E?-?BOOK.*$/im.exec(text);
+    const oldStart = start ? null : /^.*\*END\*\s*THE SMALL PRINT!.*$/im.exec(text);
+    const s = start || oldStart;
+    if (!s) return text;
+
+    const header = text.slice(0, s.index);
+    const grab = (key) => {
+      const m = new RegExp('^' + key + ':[ \\t]*(.+(?:\\n[ \\t]+\\S.*)*)', 'im').exec(header);
+      return m ? m[1].replace(/\s*\n\s*/g, ' ').trim() : null;
+    };
+    meta.title = grab('Title');
+    meta.author = grab('Author') || grab('Editor');
+    meta.language = langFromName(grab('Language'));
+    if (!meta.title) {
+      const m = /The Project Gutenberg (?:EBook|eBook|Ebook|Etext|E-text|e-text) of (.+?)(?:,\s*by\s+(.+?))?\s*$/im.exec(header);
+      if (m) {
+        meta.title = m[1].trim();
+        if (!meta.author && m[2]) meta.author = m[2].trim();
+      }
+    }
+    if (meta.title) meta.titleSource = 'gutenberg';
+
+    let body = text.slice(s.index + s[0].length);
+    const end = /^.*(?:\*{3}\s*END OF (?:THE|THIS) PROJECT GUTENBERG|End of (?:the )?Project Gutenberg['’]?s?\b).*$/im.exec(body);
+    if (end) body = body.slice(0, end.index);
+    // Drop "Produced by …" credits at the very top
+    body = body.replace(/^\s*(?:(?:Produced by|E-?text prepared by|This e-?book was produced by|Transcribed from)[\s\S]*?\n\s*\n)+/i, '\n');
+    warnings.push('Removed the Project Gutenberg header and license text.');
+    return body;
+  }
+
+  const HEADER_KEYS = /^(title|author|authors|by|fandoms?|rating|summary|description|language|status|published|updated|completed|words|chapters|series|relationships?|characters?|category|categories|warnings?|archive warnings?|additional tags|tags|genre|story url|source|url|packaged|publisher|collections?|stats)\s*:\s*(.*)$/i;
+
+  /** "Key: Value" story-info block (FanFicFare, AO3 copy-paste, many web-novel tools). */
+  function sniffHeaderBlock(lines, meta) {
+    let hits = 0;
+    const found = {};
+    const limit = Math.min(lines.length, 60);
+    for (let i = 0; i < limit; i++) {
+      const m = HEADER_KEYS.exec(lines[i].trim());
+      if (!m) continue;
+      hits++;
+      const key = m[1].toLowerCase();
+      let val = m[2].trim();
+      if (key === 'summary' || key === 'description') {
+        const extra = [];
+        for (let j = i + 1; j < lines.length && !isBlank(lines[j]) && !HEADER_KEYS.test(lines[j].trim()); j++) extra.push(lines[j].trim());
+        val = [val, ...extra].filter(Boolean).join(' ');
+        if (!val && i + 2 < lines.length) {
+          // "Summary:" alone, with the text after a blank line
+          const extra2 = [];
+          for (let j = i + 2; j < lines.length && !isBlank(lines[j]); j++) extra2.push(lines[j].trim());
+          val = extra2.join(' ');
+        }
+        if (val && !found.description) found.description = val;
+      } else if (key === 'title' && val && !found.title) found.title = val;
+      else if ((key === 'author' || key === 'authors' || key === 'by') && val && !found.author) found.author = val;
+      else if (key === 'language' && val && !found.language) found.language = langFromName(val);
+    }
+    // A single "Title:" line on its own is too weak to trust; a block of 2+ keys is a real header.
+    if (hits < 2) return;
+    if (found.title && !meta.title) {
+      meta.title = found.title;
+      meta.titleSource = 'header';
+    }
+    if (found.author && !meta.author) meta.author = found.author;
+    if (found.language && !meta.language) meta.language = found.language;
+    if (found.description && !meta.description) meta.description = found.description;
+  }
+
+  function isTitleLike(s) {
+    s = s.trim();
+    if (!s || s.length > 100 || !/\p{L}/u.test(s)) return false;
+    if (/[.,;:]$/.test(s) && !/\.\.\.$|…$/.test(s)) return false;
+    if (/^["“‘'(—–\-]/.test(s)) return false;
+    if (/https?:\/\/|www\./i.test(s)) return false;
+    if (HEADER_KEYS.test(s) || isSceneBreak(s)) return false;
+    const n = words(s).length;
+    if (n > 15) return false;
+    return isTitleCase(s) || isAllCaps(s) || n <= 3;
+  }
+
+  const BY_RE = /^(?:(?:by|written by|story by|a story by|author:)\s+|(?:作者|著者|Автор)\s*[:：]\s*)(.{1,80})$/i;
+
+  function cleanFileTitle(name) {
+    return (name || '')
+      .replace(/\.[^.]{1,8}$/, '')
+      .replace(/[_]+/g, ' ')
+      .replace(/\s+/g, ' ')
+      .trim();
+  }
+
+  // -------------------------------------------------- heading selection
+  function mostlyIncreasing(nums) {
+    if (nums.length < 2) return true;
+    let up = 0;
+    for (let i = 1; i < nums.length; i++) if (nums[i] > nums[i - 1]) up++;
+    return up / (nums.length - 1) >= 0.8;
+  }
+
+  const TOCISH = ['chapter', 'part', 'special', 'roman', 'numtitle', 'chapter-weak'];
+
+  /**
+   * Returns heading candidates, plus "TOC blocks": 3+ consecutive lines that all
+   * look like headings (a printed table of contents). Those are judged later.
+   */
+  function findCandidates(lines, layout) {
+    const out = [];
+    const cls = lines.map((l) => (isBlank(l) ? null : classifyLine(l.trim())));
+    const tocBlocks = [];
+    const inBlock = new Set();
+    for (let i = 0; i < lines.length; ) {
+      if (cls[i] && TOCISH.includes(cls[i].type)) {
+        let j = i;
+        while (j + 1 < lines.length && cls[j + 1] && TOCISH.includes(cls[j + 1].type)) j++;
+        if (j - i + 1 >= 3) {
+          tocBlocks.push({ start: i, end: j, keys: cls.slice(i, j + 1).map((c) => c.key) });
+          for (let k = i; k <= j; k++) inBlock.add(k);
+        }
+        i = j + 1;
+      } else i++;
+    }
+    out.tocBlocks = tocBlocks;
+
+    for (let i = 0; i < lines.length; i++) {
+      if (inBlock.has(i)) continue;
+      const c = cls[i];
+      if (!c) continue;
+      const blankBefore = i === 0 || isBlank(lines[i - 1]);
+      const blankAfter = i === lines.length - 1 || isBlank(lines[i + 1]);
+      const strong = ['chapter', 'part', 'special', 'md', 'chapter-weak'].includes(c.type);
+      if (layout.hasBlanks) {
+        if (strong && !blankBefore) continue;
+        if (!strong && !(blankBefore && blankAfter)) continue;
+      } else if (c.type === 'caps' || c.type === 'numtitle') {
+        continue;
+      }
+      c.line = i;
+      out.push(c);
+    }
+    return out;
+  }
+
+  function selectHeadings(cands, nonBlankCount) {
+    const of = (t) => cands.filter((c) => c.type === t);
+    const prefixCounts = {};
+    for (const c of of('chapter-weak')) prefixCounts[c.prefix] = (prefixCounts[c.prefix] || 0) + 1;
+    const weakOk = of('chapter-weak').filter((c) => prefixCounts[c.prefix] >= 3 && c.type);
+    const byLine = (arr) => arr.sort((a, b) => a.line - b.line);
+    const extras = [...of('part'), ...of('special')];
+
+    const chapters = [...of('chapter'), ...of('md'), ...weakOk];
+    if (chapters.length) return byLine([...chapters, ...extras]);
+
+    for (const t of ['roman', 'numtitle', 'number']) {
+      const list = of(t);
+      if (list.length >= 3 && mostlyIncreasing(list.map((c) => c.num))) return byLine([...list, ...extras]);
+    }
+    const caps = of('caps');
+    if (caps.length >= 3 && caps.length <= Math.max(3, nonBlankCount / 8)) return byLine([...caps, ...extras]);
+    return byLine(extras);
+  }
+
+  /** Find a duplicated table of contents (Gutenberg) and drop it. Returns removed line ranges. */
+  function removeTocRuns(chosen, lines) {
+    const removed = [];
+    const bodyIsEmpty = (a, b) => {
+      let nonBlank = 0;
+      let chars = 0;
+      for (let i = a + 1; i < b; i++) {
+        if (!isBlank(lines[i])) {
+          nonBlank++;
+          chars += lines[i].trim().length;
+        }
+      }
+      return nonBlank <= 2 && chars <= 160;
+    };
+    let i = 0;
+    const keep = [];
+    while (i < chosen.length) {
+      // grow a run of headings with (almost) nothing between them and no repeated keys
+      let j = i;
+      const keys = new Set([chosen[i].key]);
+      while (j + 1 < chosen.length && bodyIsEmpty(chosen[j].line, chosen[j + 1].line) && !keys.has(chosen[j + 1].key)) {
+        j++;
+        keys.add(chosen[j].key);
+      }
+      const runLen = j - i + 1;
+      if (runLen >= 3) {
+        const later = new Set(chosen.slice(j + 1).map((c) => c.key));
+        const dupes = [...keys].filter((k) => later.has(k)).length;
+        if (dupes / keys.size >= 0.5) {
+          let start = chosen[i].line;
+          for (let k = start - 1; k >= Math.max(0, start - 6); k--) {
+            if (/^\s*(table of )?contents\.?\s*$/i.test(lines[k])) {
+              start = k;
+              break;
+            }
+          }
+          let end = chosen[j].line;
+          while (end + 1 < lines.length && !isBlank(lines[end + 1]) && lines[end + 1].trim().length <= 80) end++;
+          removed.push([start, end]);
+          i = j + 1;
+          continue;
+        }
+      }
+      keep.push(chosen[i]);
+      i++;
+    }
+    return { chosen: keep, removed };
+  }
+
+  /** "CHAPTER I." followed by "Down the Rabbit-Hole" on its own line → subtitle. */
+  function attachSubtitles(chosen, lines, layout) {
+    const headingLines = new Set(chosen.map((c) => c.line));
+    for (const h of chosen) {
+      h.consumedTo = h.line;
+      if (h.rest || !layout.hasBlanks) continue;
+      if (!['chapter', 'part', 'roman', 'number', 'chapter-weak'].includes(h.type) && h.kind !== 'cjk') continue;
+      let j = h.line + 1;
+      if (j < lines.length && isBlank(lines[j])) j++;
+      if (j >= lines.length || isBlank(lines[j]) || headingLines.has(j)) continue;
+      const t = lines[j].trim();
+      const afterBlank = j + 1 >= lines.length || isBlank(lines[j + 1]);
+      if (!afterBlank || t.length > 80 || isSceneBreak(t) || /^["“‘'(]/.test(t)) continue;
+      const caps = isAllCaps(t);
+      if (/[,;:]$/.test(t) || (/\.$/.test(t) && !caps)) continue;
+      if (!(caps || isTitleCase(t)) || words(t).length > 12) continue;
+      if ((t.match(/\p{L}/gu) || []).length < 3) continue; // "A." or "I" is prose, not a subtitle
+      h.subtitle = t.replace(/\.$/, '');
+      h.consumedTo = j;
+    }
+  }
+
+  function headingParts(h) {
+    let label = (h.label || '').replace(/[.:\s]+$/, '').trim();
+    let sub = (h.subtitle || h.rest || '').trim();
+    label = Typo.tameCaps(label);
+    sub = Typo.tameCaps(sub);
+    if (!label) return { label: '', sub: '', title: sub };
+    if (!sub) return { label, sub: '', title: label };
+    const joiner = h.kind === 'cjk' ? ' ' : h.kind === 'number' || h.kind === 'roman' ? '. ' : ': ';
+    return { label, sub, title: label + joiner + sub };
+  }
+
+  // ---------------------------------------------------- paragraphs
+  const AN_RE = /^\(?\s*(?:A\/N\b|AN\s*:|Author['’]?s?\s+notes?\b|Authors?['’]?\s+notes?\b|Note from the author\b|\(?See the end of the chapter for (?:more )?notes)/i;
+  const AO3_LABEL_RE = /^(?:Chapter Notes|Chapter End Notes|Notes:?|End Notes:?)$/i;
+
+  function buildParas(lines, layout, opts) {
+    const paras = [];
+    const preserve = opts.whitespace === 'preserve';
+    const mode = opts.paragraphMode === 'auto' || !opts.paragraphMode ? layout.mode : opts.paragraphMode;
+    const W = layout.W;
+    const clean = (s) => (preserve ? s.replace(/\s+$/, '') : Typo.collapseSpaces(s));
+    const len = (s) => s.trim().length;
+
+    const pushText = (text) => {
+      text = clean(text);
+      if (text) paras.push({ k: 'p', t: text });
+    };
+    const pushLines = (arr) => {
+      const out = arr.map((l) => (preserve ? l.replace(/\s+$/, '') : l.trim())).filter((l) => l.length);
+      if (out.length === 1) pushText(out[0]);
+      else if (out.length) paras.push({ k: 'br', lines: out });
+    };
+
+    // Split into blocks separated by blank lines (and scene breaks)
+    const blocks = [];
+    let cur = [];
+    let blankRun = 0;
+    const flush = () => {
+      if (cur.length) blocks.push({ lines: cur });
+      cur = [];
+    };
+    for (const l of lines) {
+      if (isBlank(l)) {
+        flush();
+        blankRun++;
+        continue;
+      }
+      if (preserve && blankRun >= 2 && blocks.length) blocks.push({ gap: true });
+      blankRun = 0;
+      if (isSceneBreak(l)) {
+        flush();
+        blocks.push({ scene: true });
+        continue;
+      }
+      cur.push(l);
+    }
+    flush();
+
+    for (const b of blocks) {
+      if (b.scene) {
+        if (paras.length && paras[paras.length - 1].k !== 'scene') paras.push({ k: 'scene' });
+        continue;
+      }
+      if (b.gap) {
+        paras.push({ k: 'gap' });
+        continue;
+      }
+      const bl = b.lines;
+      if (preserve) {
+        pushLines(bl);
+        continue;
+      }
+      if (mode === 'line') {
+        bl.forEach(pushText);
+        continue;
+      }
+      if (mode === 'blank' && opts.paragraphMode === 'blank') {
+        // user explicitly said "blank lines separate paragraphs": always join
+        pushText(bl.map((l) => l.trim()).join(' '));
+        continue;
+      }
+      if (bl.length === 1) {
+        pushText(bl[0]);
+        continue;
+      }
+      if (!W) {
+        // Not hard-wrapped: each line is its own paragraph
+        bl.forEach(pushText);
+        continue;
+      }
+      // Hard-wrapped text. Verse/letters/quotes: mostly short or indented lines → keep line breaks
+      const short = bl.filter((l) => len(l) < W * 0.6).length;
+      const allIndented = bl.every((l) => /^[ \t]{2,}\S/.test(l));
+      if (short / bl.length >= 0.6 || (allIndented && mode !== 'indent')) {
+        pushLines(bl);
+        continue;
+      }
+      // Join wrapped lines; a short line or an indented line marks a paragraph boundary
+      let acc = [];
+      bl.forEach((l, idx) => {
+        const startsPara = idx > 0 && mode === 'indent' && /^[ \t　]+\S/.test(l);
+        if (startsPara && acc.length) {
+          pushText(acc.join(' '));
+          acc = [];
+        }
+        acc.push(l.trim());
+        if (len(l) < W * 0.6 && idx < bl.length - 1) {
+          pushText(acc.join(' '));
+          acc = [];
+        }
+      });
+      if (acc.length) pushText(acc.join(' '));
+    }
+
+    // Clean-ups on finished paragraphs
+    const out = [];
+    for (let i = 0; i < paras.length; i++) {
+      const p = paras[i];
+      if (p.k === 'p') {
+        if (/^Chapter Text$/i.test(p.t)) continue; // AO3 artifact
+        if (opts.removeAuthorNotes) {
+          if (AN_RE.test(p.t)) continue;
+          if (AO3_LABEL_RE.test(p.t)) {
+            i++; // drop the label and the note right after it
+            continue;
+          }
+        }
+        p.t = Typo.polish(p.t, opts);
+      } else if (p.k === 'br') {
+        p.lines = p.lines.map((l) => Typo.polish(l, opts));
+      }
+      out.push(p);
+    }
+    // No scene break at the very start or end of a section
+    while (out.length && (out[0].k === 'scene' || out[0].k === 'gap')) out.shift();
+    while (out.length && (out[out.length - 1].k === 'scene' || out[out.length - 1].k === 'gap')) out.pop();
+    return out;
+  }
+
+  function countWords(paras) {
+    let n = 0;
+    for (const p of paras) {
+      const text = p.k === 'p' ? p.t : p.k === 'br' ? p.lines.join(' ') : '';
+      if (!text) continue;
+      const cjk = (text.match(/[぀-ヿ一-鿿가-힯]/g) || []).length;
+      const latin = (text.replace(/[぀-ヿ一-鿿가-힯]/g, ' ').match(/\S+/g) || []).length;
+      n += cjk + latin;
+    }
+    return n;
+  }
+
+  // ------------------------------------------------------------- main
+  const DEFAULTS = {
+    chapterMode: 'auto', // 'auto' | 'marker' | 'none'
+    marker: '===CHAPTER===',
+    paragraphMode: 'auto', // 'auto' | 'blank' | 'line' | 'indent'
+    whitespace: 'normalize', // 'normalize' | 'preserve'
+    smartQuotes: true,
+    dashes: true,
+    fixMojibake: true,
+    stripGutenberg: true,
+    removeAuthorNotes: false,
+  };
+
+  function markerHeadings(lines, marker) {
+    const out = [];
+    const m = /^\/(.+)\/([a-z]*)$/.exec(marker.trim());
+    let re = null;
+    if (m) {
+      try {
+        re = new RegExp(m[1], m[2].replace(/[gy]/g, ''));
+      } catch (e) {
+        throw new Error('The chapter marker looks like a regular expression but has an error: ' + e.message);
+      }
+    }
+    const plain = marker.trim();
+    let n = 0;
+    lines.forEach((l, i) => {
+      const t = l.trim();
+      let rest = null;
+      if (re) {
+        const mm = re.exec(t);
+        if (mm && mm.index === 0) rest = t.slice(mm[0].length);
+      } else if (plain && t.toLowerCase().startsWith(plain.toLowerCase())) {
+        rest = t.slice(plain.length);
+      }
+      if (rest === null) return;
+      n++;
+      out.push({ type: 'chapter', kind: 'marker', line: i, label: '', rest: stripDecor(rest), num: n, key: 'm:' + n });
+    });
+    // Title on the line after a bare marker, if it looks like one
+    for (const h of out) {
+      h.consumedTo = h.line;
+      if (h.rest) continue;
+      let j = h.line + 1;
+      while (j < lines.length && j <= h.line + 2 && isBlank(lines[j])) j++;
+      const t = j < lines.length ? lines[j].trim() : '';
+      if (t && t.length <= 80 && !/[.,;:!?"”]$/.test(t) && !isSceneBreak(t) && !out.some((o) => o.line === j)) {
+        h.rest = t;
+        h.consumedTo = j;
+      } else {
+        h.label = 'Chapter ' + h.num;
+      }
+    }
+    return out;
+  }
+
+  /**
+   * Parse text into a book.
+   * @param {string} text
+   * @param {string} fileName
+   * @param {object} options  see DEFAULTS
+   */
+  function parse(text, fileName, options) {
+    const opts = Object.assign({}, DEFAULTS, options || {});
+    const warnings = [];
+    const meta = {};
+
+    // 1. Normalise line endings and strip invisible junk
+    text = text
+      .replace(/^\uFEFF/, '')
+      .replace(/\r\n?/g, '\n')
+      .replace(/[\u2028\u2029\f\v]/g, '\n')
+      .replace(/[\u0000-\u0008\u000E-\u001F\u007F]/g, '');
+
+    if (opts.fixMojibake && T2E.Encoding) {
+      const r = T2E.Encoding.repairMojibake(text);
+      if (r.fixed) {
+        text = r.text;
+        warnings.push(`Fixed ${r.fixed} garbled character${r.fixed === 1 ? '' : 's'} (like â€™ → ’).`);
+      }
+    }
+    text = text.replace(/[\u0080-\u009F]/g, '');
+
+    if (!text.trim()) throw new Error('This file is empty.');
+
+    // 2. Project Gutenberg wrapper
+    if (opts.stripGutenberg) text = stripGutenberg(text, meta, warnings);
+
+    let lines = text.split('\n');
+
+    // 3. Story-info header ("Title: … / Author: … / Summary: …")
+    sniffHeaderBlock(lines, meta);
+
+    const layout = analyzeLayout(lines);
+
+    // 4. Chapters
+    let chosen = [];
+    const marker = (opts.marker || '').trim();
+    // In Auto mode, the user's marker still wins if it appears in the file.
+    let markerHits = [];
+    if (marker && opts.chapterMode !== 'none') {
+      try {
+        markerHits = markerHeadings(lines, marker);
+      } catch (e) {
+        if (opts.chapterMode === 'marker') throw e;
+      }
+    }
+    if (opts.chapterMode === 'marker' || (opts.chapterMode === 'auto' && markerHits.length)) {
+      chosen = markerHits;
+      if (!chosen.length) warnings.push(`No "${marker}" markers found, so the book has a single section.`);
+      else if (opts.chapterMode === 'auto') warnings.push(`Found your chapter marker "${marker}" and used it to split chapters.`);
+    } else if (opts.chapterMode !== 'none') {
+      const nonBlank = lines.filter((l) => !isBlank(l)).length;
+      const cands = findCandidates(lines, layout);
+      chosen = selectHeadings(cands, nonBlank);
+      const toc = removeTocRuns(chosen, lines);
+      chosen = toc.chosen;
+      // Printed contents lists (3+ heading-like lines in a row) that repeat real headings
+      for (const block of cands.tocBlocks) {
+        const later = new Set(chosen.filter((c) => c.line > block.end).map((c) => c.key));
+        const hits = block.keys.filter((k) => later.has(k)).length;
+        if (hits / block.keys.length < 0.5) continue;
+        let start = block.start;
+        for (let k = start - 1; k >= Math.max(0, start - 6); k--) {
+          if (/^\s*(table of )?contents\.?\s*$/i.test(lines[k])) {
+            start = k;
+            break;
+          }
+        }
+        toc.removed.push([start, block.end]);
+      }
+      if (toc.removed.length) {
+        const drop = new Set();
+        for (const [a, b] of toc.removed) for (let i = a; i <= b; i++) drop.add(i);
+        // Blank the removed lines (keeps line numbers stable)
+        lines = lines.map((l, i) => (drop.has(i) ? '' : l));
+        warnings.push('Removed the original table of contents (the EPUB gets its own).');
+      }
+      attachSubtitles(chosen, lines, layout);
+    }
+
+    // 5. Title / author from the opening lines
+    const firstHeading = chosen.length ? chosen[0].line : lines.length;
+    const consumed = new Set();
+    let title = meta.title || null;
+    let titleSource = meta.titleSource || null;
+    let author = meta.author || null;
+
+    const openIdx = [];
+    for (let i = 0; i < firstHeading; i++) if (!isBlank(lines[i])) openIdx.push(i);
+
+    if (!title && openIdx.length) {
+      const i = openIdx[0];
+      const t = lines[i].trim();
+      const next = openIdx[1];
+      const nextIsBy = next !== undefined && next <= i + 3 && BY_RE.test(lines[next].trim());
+      const blankAfter = i + 1 >= lines.length || isBlank(lines[i + 1]);
+      if (isTitleLike(t) && (blankAfter || nextIsBy || openIdx.length === 1) && !HEADER_KEYS.test(t)) {
+        title = Typo.tameCaps(t);
+        titleSource = 'first-line';
+        consumed.add(i);
+      }
+    }
+    // "by Author" line near the top
+    for (const i of openIdx.slice(0, 6)) {
+      const m = BY_RE.exec(lines[i].trim());
+      if (m) {
+        if (!author) author = Typo.tameCaps(m[1].trim());
+        if (title) consumed.add(i);
+        break;
+      }
+    }
+    // Gutenberg/header books usually repeat the title and author at the top: drop the repeats
+    if (titleSource === 'gutenberg' || titleSource === 'header') {
+      const norm = (s) => (s || '').toLowerCase().replace(/[^\p{L}\p{N}]+/gu, '');
+      for (const i of openIdx.slice(0, 10)) {
+        const n = norm(lines[i]);
+        if (!n) continue;
+        if (n === norm(title) || (author && (n === norm(author) || n === norm('by ' + author)))) consumed.add(i);
+      }
+    }
+
+    const baseTitle = title;
+    let singleChapterTitle = null;
+    if (chosen.length === 1 && ['chapter', 'chapter-weak', 'md'].includes(chosen[0].type)) {
+      const pos = lines.slice(0, chosen[0].line).filter((l) => !isBlank(l)).length;
+      if (pos <= 15) singleChapterTitle = headingParts(chosen[0]).title;
+    }
+    if (singleChapterTitle) {
+      if (!title) {
+        title = singleChapterTitle;
+        titleSource = 'chapter';
+      } else if (titleSource === 'first-line' || titleSource === 'header') {
+        title = `${title} – ${singleChapterTitle}`;
+      }
+    }
+    if (!title) {
+      title = cleanFileTitle(fileName) || 'Untitled';
+      titleSource = 'filename';
+    }
+    title = Typo.polish(title, opts);
+
+    // 6. Sections
+    const sections = [];
+    const sliceLines = (a, b) => lines.slice(a, b).map((l, k) => (consumed.has(a + k) ? '' : l));
+
+    const openingParas = buildParas(sliceLines(0, firstHeading), layout, opts);
+    if (openingParas.length) {
+      sections.push({
+        title: chosen.length ? '' : title,
+        label: '',
+        sub: '',
+        level: 1,
+        inToc: !chosen.length,
+        opening: !!chosen.length,
+        hideHeading: !chosen.length, // whole book in one section: the title page already shows the title
+        paras: openingParas,
+      });
+    }
+    let seenPart = false;
+    chosen.forEach((h, idx) => {
+      const end = idx + 1 < chosen.length ? chosen[idx + 1].line : lines.length;
+      const parts = headingParts(h);
+      const isPart = h.type === 'part';
+      if (isPart) seenPart = true;
+      const level = isPart || h.type === 'special' || !seenPart ? 1 : 2;
+      sections.push({
+        title: Typo.polish(parts.title, opts),
+        label: Typo.polish(parts.label, opts),
+        sub: Typo.polish(parts.sub, opts),
+        level,
+        isPart,
+        inToc: true,
+        opening: false,
+        paras: buildParas(sliceLines(h.consumedTo + 1, end), layout, opts),
+      });
+    });
+
+    if (!sections.length) throw new Error('No readable text found in this file.');
+    sections.forEach((s) => (s.words = countWords(s.paras)));
+
+    const language = meta.language || sniffScript(text) || null;
+    const tocCount = sections.filter((s) => s.inToc).length;
+    if (!chosen.length && opts.chapterMode === 'auto') {
+      warnings.push('No chapter headings found, so the book is one long section. Try a chapter marker if this is wrong.');
+    }
+
+    return {
+      title,
+      baseTitle: baseTitle ? Typo.polish(baseTitle, opts) : null,
+      titleSource,
+      singleChapterTitle,
+      author: author ? Typo.polish(author, opts) : null,
+      language,
+      description: meta.description ? Typo.polish(meta.description, opts) : null,
+      sections,
+      hadHeadings: chosen.length > 0,
+      layout: { mode: opts.paragraphMode === 'auto' ? layout.mode : opts.paragraphMode, wrapWidth: layout.W },
+      stats: { words: sections.reduce((n, s) => n + s.words, 0), chapters: tocCount },
+      warnings,
+      fileName,
+    };
+  }
+
+  // ------------------------------------------------------------- combine
+  /**
+   * Merge several parsed files (in order) into one book.
+   * Files without their own headings become one chapter each.
+   */
+  function combine(books) {
+    const sections = [];
+    for (const b of books) {
+      if (b.hadHeadings) {
+        for (const s of b.sections) sections.push(Object.assign({}, s));
+      } else {
+        const paras = [].concat(...b.sections.map((s) => s.paras));
+        const t = b.singleChapterTitle || b.title;
+        sections.push({ title: t, label: '', sub: t, level: 1, inToc: true, opening: false, paras, words: countWords(paras) });
+      }
+    }
+    // Book title: a shared detected title, else the common start of the file names
+    const bases = books.map((b) => (['gutenberg', 'header', 'first-line'].includes(b.titleSource) ? b.baseTitle : null)).filter(Boolean);
+    let title = null;
+    if (bases.length) {
+      const counts = {};
+      bases.forEach((t) => (counts[t] = (counts[t] || 0) + 1));
+      const [best, n] = Object.entries(counts).sort((a, b) => b[1] - a[1])[0];
+      if (n >= Math.max(2, books.length / 2)) title = best;
+    }
+    if (!title) {
+      const names = books.map((b) => cleanFileTitle(b.fileName));
+      let prefix = names[0] || '';
+      for (const n of names) while (prefix && !n.toLowerCase().startsWith(prefix.toLowerCase())) prefix = prefix.slice(0, -1);
+      prefix = prefix
+        .replace(/\s*\b(chapter|chap|ch|part|vol|volume|book|episode|ep)\.?\s*$/i, '')
+        .replace(/[\s\d\-–—_.,:#(]+$/, '')
+        .trim();
+      if (prefix.length >= 3 && books.length > 1) title = prefix;
+    }
+    if (!title) title = (books[0] && (books[0].baseTitle || books[0].title)) || 'Collected Chapters';
+
+    const first = (k) => (books.find((b) => b[k]) || {})[k] || null;
+    return {
+      title,
+      baseTitle: title,
+      titleSource: 'combined',
+      author: first('author'),
+      language: first('language'),
+      description: first('description'),
+      sections,
+      hadHeadings: true,
+      stats: { words: sections.reduce((n, s) => n + (s.words || 0), 0), chapters: sections.filter((s) => s.inToc).length },
+      warnings: [],
+    };
+  }
+
+  T2E.Parser = { parse, combine, DEFAULTS, classifyLine, isSceneBreak, cleanFileTitle, langFromName };
+})((globalThis.T2E = globalThis.T2E || {}));
+
+/* ==========================================================================
+   names.js — turning book titles into safe file names.
+
+   "Chapter 3: Who's There?" → "Chapter 3 - Who's There.epub"
+   - characters that break on iOS Files, macOS, Windows or Android are removed
+     ( / \ : * ? " < > | and control characters)
+   - a colon becomes " - " so titles stay readable
+   - trimmed to 80 characters at a word boundary
+   - Windows-reserved names (CON, NUL, COM1 …) get an underscore
+   - duplicates in one batch become "Title (2).epub", "Title (3).epub"
+   ========================================================================== */
+(function (T2E) {
+  'use strict';
+
+  const MAX_LEN = 80;
+
+  function safeFileName(name, fallback) {
+    let s = String(name || '')
+      .normalize('NFC')
+      .replace(/[\u0000-\u001F\u007F\u200B-\u200F\u2028\u2029\uFEFF]/g, '')
+      .replace(/\s*:\s+/g, ' - ')
+      .replace(/:/g, '-')
+      .replace(/[/\\|]/g, '-')
+      .replace(/[*?"<>]/g, '')
+      .replace(/\s+/g, ' ')
+      .trim()
+      .replace(/^[.\s-]+/, '')
+      .replace(/[.\s]+$/, '');
+
+    if ([...s].length > MAX_LEN) {
+      const chars = [...s].slice(0, MAX_LEN).join('');
+      const cut = chars.lastIndexOf(' ');
+      s = (cut > MAX_LEN * 0.6 ? chars.slice(0, cut) : chars).replace(/[\s.,;:\-–—]+$/, '');
+    }
+    if (/^(con|prn|aux|nul|com\d|lpt\d)$/i.test(s)) s += '_';
+    if (!s) s = fallback ? safeFileName(fallback, '') : '';
+    return s || 'Untitled';
+  }
+
+  /** Given base names (no extension), return unique names with " (2)" suffixes. */
+  function uniqueNames(bases) {
+    const seen = new Map();
+    return bases.map((b) => {
+      const key = b.toLowerCase();
+      const n = (seen.get(key) || 0) + 1;
+      seen.set(key, n);
+      return n === 1 ? b : `${b} (${n})`;
+    });
+  }
+
+  T2E.Names = { safeFileName, uniqueNames };
+})((globalThis.T2E = globalThis.T2E || {}));
+
+/* ==========================================================================
+   epub.js — structured book → .epub file (EPUB 3.0 with EPUB 2 fallbacks).
+
+   Package layout:
+     mimetype                       (stored, first — required by the spec)
+     META-INF/container.xml
+     META-INF/com.apple.ibooks.display-options.xml   (only for font presets)
+     OEBPS/content.opf              metadata, manifest, spine
+     OEBPS/nav.xhtml                EPUB 3 table of contents + landmarks
+     OEBPS/toc.ncx                  EPUB 2 table of contents (older readers)
+     OEBPS/styles.css               chosen style preset
+     OEBPS/images/cover.jpg         optional
+     OEBPS/cover.xhtml              optional full-page cover
+     OEBPS/title.xhtml              title page
+     OEBPS/s001.xhtml …             one file per section (big chapters are split)
+   ========================================================================== */
+(function (T2E) {
+  'use strict';
+
+  // ------------------------------------------------------------ styles
+  const BASE_CSS = `@charset "UTF-8";
+html, body { margin: 0; padding: 0; }
+body { widows: 2; orphans: 2; -webkit-hyphens: auto; -epub-hyphens: auto; hyphens: auto; }
+p { margin: 0; text-indent: 1.4em; }
+p.first { text-indent: 0; }
+p.lines { text-indent: 0; margin: 0.9em 0; -webkit-hyphens: none; hyphens: none; }
+p.scene { text-indent: 0; text-align: center; margin: 1.3em 0; }
+p.gap { text-indent: 0; margin: 0; }
+h1, h2 { font-weight: normal; text-align: center; -webkit-hyphens: none; hyphens: none; page-break-after: avoid; break-after: avoid; }
+h2.chapter-head { margin: 2.2em 0 1.8em; line-height: 1.3; }
+h1.part-head { margin: 35% 0 0; font-size: 1.6em; line-height: 1.3; }
+.ch-label { display: block; font-size: 0.75em; letter-spacing: 0.12em; text-transform: uppercase; }
+.ch-title { display: block; font-size: 1.35em; margin-top: 0.35em; }
+.ch-only { display: block; font-size: 1.35em; }
+.titlepage { text-align: center; margin: 30% 1em 0; }
+.titlepage h1 { font-size: 1.9em; line-height: 1.25; margin: 0 0 0.8em; }
+.titlepage p { text-indent: 0; }
+.titlepage .author { font-size: 1.15em; font-style: italic; margin: 0; }
+.titlepage .desc { margin: 3em 0 0; font-size: 0.9em; text-align: left; line-height: 1.45; }
+.cover-page { margin: 0; padding: 0; text-align: center; }
+.cover-page svg { display: block; width: 100%; height: 100%; }
+`;
+
+  const STYLES = {
+    comfortable: {
+      name: 'Comfortable',
+      hint: 'Indented paragraphs, relaxed spacing',
+      css: `body { line-height: 1.5; }\n`,
+    },
+    spaced: {
+      name: 'Spaced',
+      hint: 'Web-style: space between paragraphs, no indent',
+      css: `body { line-height: 1.5; }\np, p.first { text-indent: 0; margin: 0 0 0.9em; }\n`,
+    },
+    compact: {
+      name: 'Compact',
+      hint: 'Tighter lines, more words per page',
+      css: `body { line-height: 1.3; }\np { text-indent: 1.1em; }\nh2.chapter-head { margin: 1.2em 0 1em; }\n`,
+    },
+    large: {
+      name: 'Large print',
+      hint: 'Bigger text, extra spacing, left-aligned',
+      css: `body { font-size: 1.25em; line-height: 1.65; text-align: left; }\np, p.first { text-indent: 0; margin: 0 0 1em; }\n.ch-title, .ch-only { font-size: 1.5em; }\n`,
+    },
+    classic: {
+      name: 'Classic serif',
+      hint: 'Georgia/Palatino, justified, like a printed novel',
+      fonts: true,
+      css: `body { font-family: Georgia, "Iowan Old Style", Palatino, "Palatino Linotype", "Book Antiqua", serif; line-height: 1.45; text-align: justify; }\n.ch-label { font-variant: small-caps; text-transform: none; letter-spacing: 0.08em; font-size: 0.9em; }\nh2.chapter-head { margin-top: 3em; }\n`,
+    },
+  };
+
+  // ------------------------------------------------------------ helpers
+  /** Remove characters that are illegal in XML, including lone surrogates. */
+  function xmlSafe(s) {
+    return String(s == null ? '' : s)
+      .replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F￾￿]/g, '')
+      .replace(/([\uD800-\uDBFF][\uDC00-\uDFFF])|[\uD800-\uDFFF]/g, (m, pair) => pair || '');
+  }
+  function esc(s) {
+    return xmlSafe(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+  }
+
+  function hashUuid(str) {
+    let h1 = 1779033703, h2 = 3144134277, h3 = 1013904242, h4 = 2773480762;
+    for (let i = 0, k; i < str.length; i++) {
+      k = str.charCodeAt(i);
+      h1 = h2 ^ Math.imul(h1 ^ k, 597399067);
+      h2 = h3 ^ Math.imul(h2 ^ k, 2869860233);
+      h3 = h4 ^ Math.imul(h3 ^ k, 951274213);
+      h4 = h1 ^ Math.imul(h4 ^ k, 2716044179);
+    }
+    h1 = Math.imul(h3 ^ (h1 >>> 18), 597399067);
+    h2 = Math.imul(h4 ^ (h2 >>> 22), 2869860233);
+    h3 = Math.imul(h1 ^ (h3 >>> 17), 951274213);
+    h4 = Math.imul(h2 ^ (h4 >>> 19), 2716044179);
+    h1 ^= h2 ^ h3 ^ h4;
+    h2 ^= h1;
+    h3 ^= h1;
+    h4 ^= h1;
+    const hex = [h1, h2, h3, h4].map((h) => (h >>> 0).toString(16).padStart(8, '0')).join('');
+    const variant = (8 | (parseInt(hex[16], 16) & 3)).toString(16);
+    return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-4${hex.slice(13, 16)}-${variant}${hex.slice(17, 20)}-${hex.slice(20, 32)}`;
+  }
+
+  function validLang(l) {
+    l = (l || '').trim();
+    return /^[a-zA-Z]{2,3}(-[a-zA-Z0-9]{2,8})*$/.test(l) ? l : 'en';
+  }
+
+  function page(title, lang, body, bodyAttrs) {
+    return `<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" xmlns:epub="http://www.idpf.org/2007/ops" xml:lang="${lang}" lang="${lang}">
+<head>
+<title>${esc(title)}</title>
+<link rel="stylesheet" type="text/css" href="styles.css"/>
+</head>
+<body${bodyAttrs || ''}>
+${body}
+</body>
+</html>
+`;
+  }
+
+  const SEMANTIC = [
+    [/^prologue/i, 'prologue'],
+    [/^epilogue/i, 'epilogue'],
+    [/^preface/i, 'preface'],
+    [/^foreword/i, 'foreword'],
+    [/^introduction/i, 'introduction'],
+    [/^afterword/i, 'afterword'],
+    [/^appendix/i, 'appendix'],
+    [/^glossary/i, 'glossary'],
+    [/^acknowledge?ments?/i, 'acknowledgments'],
+    [/^dedication/i, 'dedication'],
+  ];
+  function semanticType(s) {
+    if (s.isPart) return 'part';
+    if (s.opening) return null;
+    for (const [re, t] of SEMANTIC) if (re.test(s.label || s.title || '')) return t;
+    return 'chapter';
+  }
+
+  function renderInline(t, opts) {
+    let h = esc(t);
+    if (opts.preserve) h = h.replace(/^ +/, (m) => '&#160;'.repeat(m.length)).replace(/ {2}/g, ' &#160;');
+    if (opts.emphasis) h = T2E.Typography.emphasisToHtml(h);
+    return h;
+  }
+
+  function renderParas(paras, opts) {
+    const out = [];
+    let first = true;
+    for (const p of paras) {
+      if (p.k === 'scene') {
+        out.push('<p class="scene">*&#160;&#160;&#160;*&#160;&#160;&#160;*</p>');
+        first = true;
+      } else if (p.k === 'gap') {
+        out.push('<p class="gap">&#160;</p>');
+      } else if (p.k === 'br') {
+        out.push(`<p class="lines">${p.lines.map((l) => renderInline(l, opts)).join('<br/>\n')}</p>`);
+        first = true;
+      } else {
+        out.push(`<p${first ? ' class="first"' : ''}>${renderInline(p.t, opts)}</p>`);
+        first = false;
+      }
+    }
+    return out;
+  }
+
+  function headingHtml(s) {
+    if (s.opening) return '';
+    if (s.isPart) {
+      const inner = s.label && s.sub
+        ? `<span class="ch-label">${esc(s.label)}</span><span class="ch-title">${esc(s.sub)}</span>`
+        : esc(s.title);
+      return `<h1 class="part-head">${inner}</h1>`;
+    }
+    if (s.label && s.sub) {
+      return `<h2 class="chapter-head"><span class="ch-label">${esc(s.label)}</span> <span class="ch-title">${esc(s.sub)}</span></h2>`;
+    }
+    if (s.hideHeading) return '';
+    return `<h2 class="chapter-head"><span class="ch-only">${esc(s.title)}</span></h2>`;
+  }
+
+  /** Split a long section into files of ~MAX characters so older readers don't choke. */
+  const MAX_CHARS = 150000;
+  function chunkLines(htmlLines) {
+    const chunks = [];
+    let cur = [];
+    let size = 0;
+    for (const l of htmlLines) {
+      if (size + l.length > MAX_CHARS && cur.length) {
+        chunks.push(cur);
+        cur = [];
+        size = 0;
+      }
+      cur.push(l);
+      size += l.length;
+    }
+    if (cur.length || !chunks.length) chunks.push(cur);
+    return chunks;
+  }
+
+  function navOl(entries, liFn) {
+    // entries have level 1 or 2; returns nested <ol>
+    let html = '<ol>\n';
+    entries.forEach((e, i) => {
+      const next = entries[i + 1];
+      html += '<li>' + liFn(e);
+      if (next && next.level > e.level) html += '\n<ol>\n';
+      else {
+        html += '</li>\n';
+        if (next && next.level < e.level) html += '</ol>\n</li>\n';
+      }
+    });
+    if (entries.length && entries[entries.length - 1].level === 2) html += '</ol>\n</li>\n';
+    return html + '</ol>';
+  }
+
+  function ncxPoints(entries) {
+    let xml = '';
+    let order = 0;
+    entries.forEach((e, i) => {
+      const next = entries[i + 1];
+      order++;
+      xml += `<navPoint id="np${order}" playOrder="${order}"><navLabel><text>${esc(e.title)}</text></navLabel><content src="${e.href}"/>`;
+      if (next && next.level > e.level) xml += '\n';
+      else {
+        xml += '</navPoint>\n';
+        if (next && next.level < e.level) xml += '</navPoint>\n';
+      }
+    });
+    if (entries.length && entries[entries.length - 1].level === 2) xml += '</navPoint>\n';
+    return xml;
+  }
+
+  /**
+   * Build an EPUB.
+   * @param {object} book   output of T2E.Parser.parse / combine
+   * @param {object} meta   { title, author, language, description, style, cover:{bytes,width,height}|null,
+   *                          emphasis:boolean, preserve:boolean }
+   * @returns {Promise<Blob>}
+   */
+  async function build(book, meta) {
+    const lang = validLang(meta.language);
+    const title = (meta.title || book.title || 'Untitled').trim();
+    const author = (meta.author || '').trim();
+    const description = (meta.description || '').trim();
+    const style = STYLES[meta.style] || STYLES.comfortable;
+    const uuid = hashUuid(title + '\u0000' + author);
+    const modified = new Date().toISOString().replace(/\.\d{3}Z$/, 'Z');
+    const opts = { emphasis: !!meta.emphasis, preserve: !!meta.preserve };
+
+    const zip = new T2E.Zip.ZipWriter();
+    zip.add('mimetype', 'application/epub+zip', { compress: false });
+    zip.add(
+      'META-INF/container.xml',
+      `<?xml version="1.0" encoding="UTF-8"?>
+<container version="1.0" xmlns="urn:oasis:names:tc:opendocument:xmlns:container">
+  <rootfiles>
+    <rootfile full-path="OEBPS/content.opf" media-type="application/oebps-package+xml"/>
+  </rootfiles>
+</container>
+`
+    );
+    if (style.fonts) {
+      zip.add(
+        'META-INF/com.apple.ibooks.display-options.xml',
+        `<?xml version="1.0" encoding="UTF-8"?>
+<display_options>
+  <platform name="*">
+    <option name="specified-fonts">true</option>
+  </platform>
+</display_options>
+`
+      );
+    }
+
+    const manifest = [];
+    const spine = [];
+    const tocEntries = [];
+    const landmarks = [];
+
+    manifest.push('<item id="nav" href="nav.xhtml" media-type="application/xhtml+xml" properties="nav"/>');
+    manifest.push('<item id="ncx" href="toc.ncx" media-type="application/x-dtbncx+xml"/>');
+    manifest.push('<item id="css" href="styles.css" media-type="text/css"/>');
+    const files = []; // [path, content]
+
+    // Cover
+    if (meta.cover && meta.cover.bytes) {
+      const { width, height } = meta.cover;
+      manifest.push('<item id="cover-image" href="images/cover.jpg" media-type="image/jpeg" properties="cover-image"/>');
+      manifest.push('<item id="cover" href="cover.xhtml" media-type="application/xhtml+xml" properties="svg"/>');
+      spine.push('<itemref idref="cover"/>');
+      landmarks.push(['cover', 'cover.xhtml', 'Cover']);
+      files.push([
+        'OEBPS/cover.xhtml',
+        `<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" xmlns:epub="http://www.idpf.org/2007/ops" xml:lang="${lang}" lang="${lang}">
+<head>
+<title>Cover</title>
+<style type="text/css">html, body { margin: 0; padding: 0; height: 100%; } svg { display: block; width: 100%; height: 100%; }</style>
+</head>
+<body epub:type="cover">
+<div class="cover-page">
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" version="1.1" width="100%" height="100%" viewBox="0 0 ${width} ${height}" preserveAspectRatio="xMidYMid meet">
+<image width="${width}" height="${height}" xlink:href="images/cover.jpg"/>
+</svg>
+</div>
+</body>
+</html>
+`,
+      ]);
+    }
+
+    // Title page
+    manifest.push('<item id="titlepage" href="title.xhtml" media-type="application/xhtml+xml"/>');
+    spine.push('<itemref idref="titlepage"/>');
+    landmarks.push(['titlepage', 'title.xhtml', 'Title Page']);
+    files.push([
+      'OEBPS/title.xhtml',
+      page(
+        title,
+        lang,
+        `<section class="titlepage" epub:type="titlepage">
+<h1>${esc(title)}</h1>
+${author ? `<p class="author">${esc(author)}</p>` : ''}
+${description ? `<p class="desc">${esc(description)}</p>` : ''}
+</section>`
+      ),
+    ]);
+
+    // Sections
+    let n = 0;
+    let firstBody = null;
+    for (const s of book.sections) {
+      const htmlLines = renderParas(s.paras, opts);
+      const chunks = chunkLines(htmlLines);
+      chunks.forEach((chunk, ci) => {
+        n++;
+        const id = 's' + String(n).padStart(3, '0');
+        const href = id + '.xhtml';
+        const type = semanticType(s);
+        const head = ci === 0 ? headingHtml(s) : '';
+        const attrs = type ? ` epub:type="${type}"` : '';
+        const pageTitle = s.title || title;
+        files.push(['OEBPS/' + href, page(pageTitle, lang, `<section id="${id}"${attrs}>\n${head}\n${chunk.join('\n')}\n</section>`)]);
+        manifest.push(`<item id="${id}" href="${href}" media-type="application/xhtml+xml"/>`);
+        spine.push(`<itemref idref="${id}"/>`);
+        if (ci === 0 && s.inToc) tocEntries.push({ title: s.title || title, href, level: s.level === 2 ? 2 : 1 });
+        if (ci === 0 && !firstBody && !s.opening) firstBody = href;
+      });
+    }
+    if (!tocEntries.length) tocEntries.push({ title, href: 'title.xhtml', level: 1 });
+    if (tocEntries[0].level === 2) tocEntries[0].level = 1;
+    landmarks.push(['bodymatter', firstBody || tocEntries[0].href, 'Start']);
+
+    // Navigation (EPUB 3)
+    files.push([
+      'OEBPS/nav.xhtml',
+      page(
+        'Contents',
+        lang,
+        `<nav epub:type="toc" id="toc">
+<h1>Contents</h1>
+${navOl(tocEntries, (e) => `<a href="${e.href}">${esc(e.title)}</a>`)}
+</nav>
+<nav epub:type="landmarks" id="landmarks" hidden="hidden">
+<h2>Landmarks</h2>
+<ol>
+${landmarks.map(([t, h, l]) => `<li><a epub:type="${t}" href="${h}">${esc(l)}</a></li>`).join('\n')}
+</ol>
+</nav>`
+      ),
+    ]);
+
+    // NCX (EPUB 2 readers)
+    const depth = tocEntries.some((e) => e.level === 2) ? 2 : 1;
+    files.push([
+      'OEBPS/toc.ncx',
+      `<?xml version="1.0" encoding="UTF-8"?>
+<ncx xmlns="http://www.daisy.org/z3986/2005/ncx/" version="2005-1" xml:lang="${lang}">
+<head>
+<meta name="dtb:uid" content="urn:uuid:${uuid}"/>
+<meta name="dtb:depth" content="${depth}"/>
+<meta name="dtb:totalPageCount" content="0"/>
+<meta name="dtb:maxPageNumber" content="0"/>
+</head>
+<docTitle><text>${esc(title)}</text></docTitle>
+${author ? `<docAuthor><text>${esc(author)}</text></docAuthor>` : ''}
+<navMap>
+${ncxPoints(tocEntries)}</navMap>
+</ncx>
+`,
+    ]);
+
+    files.push(['OEBPS/styles.css', BASE_CSS + style.css]);
+
+    // Package document
+    const opf = `<?xml version="1.0" encoding="UTF-8"?>
+<package xmlns="http://www.idpf.org/2007/opf" version="3.0" unique-identifier="bookid" xml:lang="${lang}"${style.fonts ? ' prefix="ibooks: http://vocabulary.itunes.apple.com/rdf/ibooks/vocabulary-extensions-1.0/"' : ''}>
+<metadata xmlns:dc="http://purl.org/dc/elements/1.1/">
+<dc:identifier id="bookid">urn:uuid:${uuid}</dc:identifier>
+<dc:title id="title">${esc(title)}</dc:title>
+${author ? `<dc:creator id="creator">${esc(author)}</dc:creator>\n<meta refines="#creator" property="role" scheme="marc:relators">aut</meta>` : ''}
+<dc:language>${lang}</dc:language>
+${description ? `<dc:description>${esc(description)}</dc:description>` : ''}
+<meta property="dcterms:modified">${modified}</meta>
+${meta.cover && meta.cover.bytes ? '<meta name="cover" content="cover-image"/>' : ''}
+${style.fonts ? '<meta property="ibooks:specified-fonts">true</meta>' : ''}
+</metadata>
+<manifest>
+${manifest.join('\n')}
+</manifest>
+<spine toc="ncx">
+${spine.join('\n')}
+</spine>
+</package>
+`;
+    zip.add('OEBPS/content.opf', opf);
+    for (const [path, content] of files) zip.add(path, content);
+    if (meta.cover && meta.cover.bytes) zip.add('OEBPS/images/cover.jpg', meta.cover.bytes, { compress: false });
+
+    return zip.toBlob('application/epub+zip');
+  }
+
+  T2E.Epub = { build, STYLES, esc, hashUuid };
+})((globalThis.T2E = globalThis.T2E || {}));
+
+/* ==========================================================================
+   covers.js — cover images: resize, generate, and match to books.
+
+   - Any JPG / PNG / WebP (and HEIC where Safari can decode it) is redrawn
+     onto a canvas and saved as a JPEG of at most 1600 × 2560 px. JPEG is the
+     one cover format every e-reader understands.
+   - Big photos are scaled down in steps (better quality, and it keeps each
+     canvas under iOS Safari's size limit).
+   - Canvases are shrunk to 0×0 after use: iOS has a total canvas-memory cap,
+     and leaked canvases make later covers silently fail.
+   - "Text cover": a simple typographic cover drawn from the title + author.
+   ========================================================================== */
+(function (T2E) {
+  'use strict';
+
+  const MAX_W = 1600;
+  const MAX_H = 2560;
+  const MAX_CANVAS_AREA = 16000000; // stay under iOS's 16.7 MP canvas limit
+  const QUALITY = 0.88;
+
+  const PALETTES = [
+    ['#1f2a44', '#34466e', '#e8c88a'],
+    ['#1e3b33', '#2f6050', '#eadfc4'],
+    ['#4a1d2c', '#713149', '#f2d4a7'],
+    ['#2b2f36', '#4a525e', '#9fd3c7'],
+    ['#3a2346', '#5e3d73', '#f0c1d0'],
+    ['#5b3b14', '#8c5c24', '#f6e7c8'],
+    ['#12393f', '#1f5e68', '#f4d58d'],
+    ['#3d2b1f', '#6b4a35', '#e9c46a'],
+  ];
+
+  function hash(s) {
+    let h = 2166136261;
+    for (let i = 0; i < s.length; i++) h = Math.imul(h ^ s.charCodeAt(i), 16777619);
+    return h >>> 0;
+  }
+  function paletteFor(title) {
+    return PALETTES[hash(title || '') % PALETTES.length];
+  }
+
+  function makeCanvas(w, h) {
+    const c = document.createElement('canvas');
+    c.width = w;
+    c.height = h;
+    return c;
+  }
+  function release(c) {
+    if (c) {
+      c.width = 0;
+      c.height = 0;
+    }
+  }
+
+  function canvasToBlob(canvas, type, quality) {
+    return new Promise((resolve, reject) => {
+      if (canvas.toBlob) {
+        canvas.toBlob((b) => (b ? resolve(b) : reject(new Error('Could not save the cover image.'))), type, quality);
+      } else {
+        try {
+          const data = canvas.toDataURL(type, quality);
+          const bin = atob(data.split(',')[1]);
+          const bytes = new Uint8Array(bin.length);
+          for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+          resolve(new Blob([bytes], { type }));
+        } catch (e) {
+          reject(e);
+        }
+      }
+    });
+  }
+
+  function loadImage(blob) {
+    return new Promise((resolve, reject) => {
+      const url = URL.createObjectURL(blob);
+      const img = new Image();
+      img.onload = () => resolve({ img, url });
+      img.onerror = () => {
+        URL.revokeObjectURL(url);
+        reject(new Error('Couldn’t read this image. Try a JPG, PNG or WebP file.'));
+      };
+      img.src = url;
+    });
+  }
+
+  /**
+   * Resize/convert an image file into an EPUB-ready JPEG.
+   * @returns {Promise<{blob: Blob, width: number, height: number, url: string}>}
+   */
+  async function processImage(file) {
+    const { img, url } = await loadImage(file);
+    const temps = [];
+    try {
+      const w = img.naturalWidth;
+      const h = img.naturalHeight;
+      if (!w || !h) throw new Error('This image appears to be empty.');
+      const scale = Math.min(1, MAX_W / w, MAX_H / h);
+      const tw = Math.max(1, Math.round(w * scale));
+      const th = Math.max(1, Math.round(h * scale));
+
+      // Halve repeatedly while the source is much bigger than the target
+      let src = img;
+      let sw = w;
+      let sh = h;
+      while (sw > tw * 2) {
+        let nw = Math.round(sw / 2);
+        let nh = Math.round(sh / 2);
+        if (nw * nh > MAX_CANVAS_AREA) {
+          const k = Math.sqrt(MAX_CANVAS_AREA / (nw * nh));
+          nw = Math.floor(nw * k);
+          nh = Math.floor(nh * k);
+        }
+        const c = makeCanvas(nw, nh);
+        const ctx = c.getContext('2d');
+        ctx.imageSmoothingEnabled = true;
+        ctx.imageSmoothingQuality = 'high';
+        ctx.drawImage(src, 0, 0, nw, nh);
+        temps.push(c);
+        src = c;
+        sw = nw;
+        sh = nh;
+      }
+      const out = makeCanvas(tw, th);
+      temps.push(out);
+      const ctx = out.getContext('2d');
+      ctx.fillStyle = '#ffffff'; // transparent PNGs get a white background
+      ctx.fillRect(0, 0, tw, th);
+      ctx.imageSmoothingEnabled = true;
+      ctx.imageSmoothingQuality = 'high';
+      ctx.drawImage(src, 0, 0, tw, th);
+      const blob = await canvasToBlob(out, 'image/jpeg', QUALITY);
+      return { blob, width: tw, height: th, url: URL.createObjectURL(blob) };
+    } finally {
+      temps.forEach(release);
+      URL.revokeObjectURL(url);
+    }
+  }
+
+  // ------------------------------------------------------- text cover
+  function wrapText(ctx, text, maxWidth) {
+    const hasSpaces = /\s/.test(text.trim());
+    const tokens = hasSpaces ? text.trim().split(/\s+/) : [...text.trim()];
+    const joiner = hasSpaces ? ' ' : '';
+    const lines = [];
+    let line = '';
+    for (const t of tokens) {
+      const test = line ? line + joiner + t : t;
+      if (ctx.measureText(test).width > maxWidth && line) {
+        lines.push(line);
+        line = t;
+      } else line = test;
+    }
+    if (line) lines.push(line);
+    return lines;
+  }
+
+  /** Draw a typographic cover. Returns the same shape as processImage. */
+  async function generateCover(title, author) {
+    const W = 1600;
+    const H = 2400;
+    const c = makeCanvas(W, H);
+    try {
+      const ctx = c.getContext('2d');
+      const [bg1, bg2, accent] = paletteFor(title);
+      const g = ctx.createLinearGradient(0, 0, W * 0.4, H);
+      g.addColorStop(0, bg2);
+      g.addColorStop(1, bg1);
+      ctx.fillStyle = g;
+      ctx.fillRect(0, 0, W, H);
+
+      // Frame
+      ctx.strokeStyle = accent;
+      ctx.globalAlpha = 0.55;
+      ctx.lineWidth = 6;
+      ctx.strokeRect(90, 90, W - 180, H - 180);
+      ctx.lineWidth = 2;
+      ctx.strokeRect(118, 118, W - 236, H - 236);
+      ctx.globalAlpha = 1;
+
+      // Title: shrink until it fits in 6 lines
+      const serif = 'Georgia, "Iowan Old Style", "Times New Roman", serif';
+      let size = 170;
+      let lines;
+      do {
+        ctx.font = `600 ${size}px ${serif}`;
+        lines = wrapText(ctx, title || 'Untitled', W - 360);
+        size -= 8;
+      } while ((lines.length > 6 || lines.some((l) => ctx.measureText(l).width > W - 360)) && size > 56);
+      size += 8;
+      const lh = size * 1.18;
+      const blockH = lines.length * lh;
+      let y = H * 0.4 - blockH / 2 + size;
+      ctx.fillStyle = '#fbf7ef';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'alphabetic';
+      for (const l of lines) {
+        ctx.fillText(l, W / 2, y);
+        y += lh;
+      }
+
+      // Divider + author
+      ctx.fillStyle = accent;
+      ctx.fillRect(W / 2 - 90, y + 30, 180, 6);
+      if (author) {
+        ctx.font = `italic 400 82px ${serif}`;
+        const al = wrapText(ctx, author, W - 400).slice(0, 2);
+        let ay = y + 170;
+        ctx.fillStyle = accent;
+        for (const l of al) {
+          ctx.fillText(l, W / 2, ay);
+          ay += 100;
+        }
+      }
+      const blob = await canvasToBlob(c, 'image/jpeg', 0.9);
+      return { blob, width: W, height: H, url: URL.createObjectURL(blob) };
+    } finally {
+      release(c);
+    }
+  }
+
+  // ------------------------------------------------------- matching
+  function normName(s) {
+    return (s || '')
+      .toLowerCase()
+      .normalize('NFKD')
+      .replace(/[̀-ͯ]/g, '')
+      .replace(/\.[a-z0-9]{2,5}$/, '')
+      .replace(/(^|[\s_\-.()[\]])(cover|front|art|artwork|image|img|poster|thumb|thumbnail)(?=[\s_\-.()[\]]|$)/g, ' ')
+      .replace(/[^\p{L}\p{N}]+/gu, '');
+  }
+
+  // "book1" must not match inside "book10"
+  function containsWhole(hay, needle) {
+    let idx = hay.indexOf(needle);
+    while (idx >= 0) {
+      const before = hay[idx - 1] || '';
+      const after = hay[idx + needle.length] || '';
+      const digitClash = (/\d$/.test(needle) && /\d/.test(after)) || (/^\d/.test(needle) && /\d/.test(before));
+      if (!digitClash) return true;
+      idx = hay.indexOf(needle, idx + 1);
+    }
+    return false;
+  }
+
+  /**
+   * Pair cover images with books by name.
+   * 1) exact match on file name or title (ignoring case, accents, punctuation and words like "cover")
+   * 2) otherwise the longest name that contains the other
+   * @param {{id, fileName, title}[]} books
+   * @param {{id, name}[]} covers
+   * @returns {Map<bookId, coverId>}
+   */
+  function matchCovers(books, covers) {
+    const result = new Map();
+    const used = new Set();
+    const bk = books.map((b) => ({ id: b.id, keys: [normName(b.fileName), normName(b.title)].filter((k) => k.length >= 2) }));
+    const cv = covers.map((c) => ({ id: c.id, key: normName(c.name) })).filter((c) => c.key.length >= 2);
+
+    for (const b of bk) {
+      const hit = cv.find((c) => !used.has(c.id) && b.keys.includes(c.key));
+      if (hit) {
+        result.set(b.id, hit.id);
+        used.add(hit.id);
+      }
+    }
+    for (const b of bk) {
+      if (result.has(b.id)) continue;
+      let best = null;
+      let bestLen = 0;
+      for (const c of cv) {
+        if (used.has(c.id)) continue;
+        for (const k of b.keys) {
+          if (k.length < 3 || c.key.length < 3) continue;
+          if (containsWhole(k, c.key) || containsWhole(c.key, k)) {
+            const l = Math.min(k.length, c.key.length);
+            if (l > bestLen) {
+              best = c;
+              bestLen = l;
+            }
+          }
+        }
+      }
+      if (best) {
+        result.set(b.id, best.id);
+        used.add(best.id);
+      }
+    }
+    return result;
+  }
+
+  T2E.Covers = { processImage, generateCover, matchCovers, paletteFor, normName };
+})((globalThis.T2E = globalThis.T2E || {}));
+
+/* ==========================================================================
+   platform.js — settings storage, saving/sharing files, offline support.
+
+   Saving a file on iPhone, in order of preference:
+     1. Share sheet (navigator.share with files) → "Books", "Save to Files" …
+        Works in Safari and in home-screen apps (iOS 15+). Must run directly
+        inside a tap handler, so files are always built *before* the tap.
+     2. <a download> with a blob URL → Safari's download prompt → Files app.
+     3. Inside Claude's hosted page: the page can't download by itself, so it
+        asks Claude's `downloads` capability, which shows a confirm prompt.
+   ========================================================================== */
+(function (T2E) {
+  'use strict';
+
+  // ------------------------------------------------------------ settings
+  const KEY = 'txt2epub.settings.v1';
+  const SETTINGS_DEFAULTS = {
+    author: '',
+    language: 'en',
+    description: '',
+    style: 'comfortable',
+    chapterMode: 'auto',
+    marker: '===CHAPTER===',
+    paragraphMode: 'auto',
+    whitespace: 'normalize',
+    smartQuotes: true,
+    dashes: true,
+    fixMojibake: true,
+    stripGutenberg: true,
+    removeAuthorNotes: false,
+    emphasis: false,
+    encoding: 'auto',
+    coverMode: 'match', // 'match' | 'same' | 'generated' | 'none'
+    coverFallback: 'generated', // when nothing matches: 'generated' | 'none'
+    combine: false,
+  };
+
+  function loadSettings() {
+    let saved = {};
+    try {
+      saved = JSON.parse(localStorage.getItem(KEY) || '{}') || {};
+    } catch (e) {
+      /* private mode or blocked storage: use defaults */
+    }
+    const s = Object.assign({}, SETTINGS_DEFAULTS, saved);
+    if (!saved.language) {
+      const nav = (navigator.language || 'en').split('-')[0].toLowerCase();
+      if (/^[a-z]{2,3}$/.test(nav)) s.language = nav;
+    }
+    return s;
+  }
+
+  function saveSettings(s) {
+    try {
+      localStorage.setItem(KEY, JSON.stringify(s));
+      return true;
+    } catch (e) {
+      return false;
+    }
+  }
+
+  // ------------------------------------------------------------ platform
+  const ua = navigator.userAgent || '';
+  const isIOS = /iPad|iPhone|iPod/.test(ua) || (ua.includes('Macintosh') && navigator.maxTouchPoints > 1);
+  const isStandalone =
+    (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches) || window.navigator.standalone === true;
+
+  const Platform = {
+    isIOS,
+    isStandalone,
+    inClaude: false, // running as a Claude-hosted page
+    claudeDownloads: null,
+    offlineReady: false,
+    _listeners: [],
+
+    onChange(fn) {
+      this._listeners.push(fn);
+    },
+    _emit() {
+      this._listeners.forEach((fn) => {
+        try {
+          fn();
+        } catch (e) {
+          /* ignore */
+        }
+      });
+    },
+
+    /** Detect the host and set up offline support. Safe to call more than once. */
+    init() {
+      if (!this.inClaude && window.claude && typeof window.claude.use === 'function') {
+        this.inClaude = true;
+        Promise.resolve(window.claude.use('downloads'))
+          .then((ns) => {
+            this.claudeDownloads = ns || null;
+            this._emit();
+          })
+          .catch(() => this._emit());
+        this._emit();
+      }
+      if (!this.inClaude && !this._swTried) {
+        this._swTried = true;
+        this.registerServiceWorker();
+      }
+    },
+
+    registerServiceWorker() {
+      try {
+        const okProtocol = location.protocol === 'https:' || location.hostname === 'localhost' || location.hostname === '127.0.0.1';
+        if (!('serviceWorker' in navigator) || !okProtocol) return;
+        navigator.serviceWorker
+          .register('sw.js')
+          .then(() => navigator.serviceWorker.ready)
+          .then(() => {
+            this.offlineReady = true;
+            this._emit();
+          })
+          .catch(() => {
+            /* sandboxed frames and file:// can't register a worker; the app still works online */
+          });
+      } catch (e) {
+        /* ignore */
+      }
+    },
+
+    /** Can we hand these files to the system share sheet? */
+    canShareFiles(files) {
+      if (this.inClaude) return false; // Web Share is blocked in Claude's sandboxed frame
+      try {
+        return !!(navigator.share && navigator.canShare && navigator.canShare({ files }));
+      } catch (e) {
+        return false;
+      }
+    },
+
+    canSave() {
+      return !this.inClaude || !!this.claudeDownloads;
+    },
+
+    /** Open the share sheet. Resolves false if the user cancelled. */
+    async share(files, title) {
+      try {
+        await navigator.share({ files, title });
+        return true;
+      } catch (e) {
+        if (e && e.name === 'AbortError') return false;
+        throw e;
+      }
+    },
+
+    /** Save a blob as a download. */
+    async save(blob, filename) {
+      if (this.inClaude) {
+        if (!this.claudeDownloads) throw new Error('Saving files isn’t available in this view. Open the page directly in Safari instead.');
+        try {
+          await this.claudeDownloads.save({ filename, data: blob });
+          return true;
+        } catch (e) {
+          if (e && e.code === 'declined') return false;
+          throw new Error((e && e.message) || 'The download was blocked.');
+        }
+      }
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename;
+      a.rel = 'noopener';
+      a.style.display = 'none';
+      document.body.appendChild(a);
+      a.click();
+      // iOS needs the blob URL to stay alive until the download sheet finishes
+      setTimeout(() => {
+        URL.revokeObjectURL(url);
+        a.remove();
+      }, 60000);
+      return true;
+    },
+  };
+
+  T2E.Settings = { load: loadSettings, save: saveSettings, DEFAULTS: SETTINGS_DEFAULTS };
+  T2E.Platform = Platform;
+})((globalThis.T2E = globalThis.T2E || {}));
+
+/* ==========================================================================
+   app.js — the UI. Holds app state, renders cards, runs conversions.
+
+   Flow: add files → read bytes → decode (encoding.js) → parse (parser.js)
+         → preview cards → Convert → build (epub.js) → Share / Save / ZIP
+   Everything re-parses automatically when a text option changes, and any
+   change clears finished results so what you download always matches
+   what you see.
+   ========================================================================== */
+(function (T2E) {
+  'use strict';
+  const { Parser, Encoding, Epub, Covers, Names, Platform, Settings } = T2E;
+
+  // ------------------------------------------------------------ state
+  const S = {
+    settings: Settings.load(),
+    books: [], // one per TXT file
+    covers: [], // the cover tray
+    sameCoverId: null,
+    combined: { overrides: {}, cover: 'auto', status: 'ready', error: null, result: null, cache: null },
+    busy: false,
+  };
+  let nextId = 1;
+
+  const LANGS = [
+    ['en', 'English'], ['es', 'Spanish'], ['fr', 'French'], ['de', 'German'], ['it', 'Italian'], ['pt', 'Portuguese'],
+    ['nl', 'Dutch'], ['sv', 'Swedish'], ['da', 'Danish'], ['no', 'Norwegian'], ['fi', 'Finnish'], ['pl', 'Polish'],
+    ['cs', 'Czech'], ['hu', 'Hungarian'], ['ro', 'Romanian'], ['el', 'Greek'], ['tr', 'Turkish'], ['ru', 'Russian'],
+    ['uk', 'Ukrainian'], ['ar', 'Arabic'], ['he', 'Hebrew'], ['hi', 'Hindi'], ['id', 'Indonesian'], ['vi', 'Vietnamese'],
+    ['th', 'Thai'], ['tl', 'Tagalog'], ['zh', 'Chinese'], ['ja', 'Japanese'], ['ko', 'Korean'], ['la', 'Latin'], ['eo', 'Esperanto'],
+  ];
+  const langName = (code) => (LANGS.find(([c]) => c === code) || [code, code])[1];
+
+  const SOURCE_LABEL = {
+    gutenberg: 'title from Gutenberg info',
+    header: 'title from story info',
+    'first-line': 'title from first line',
+    chapter: 'title from chapter heading',
+    filename: 'title from file name',
+  };
+
+  // ------------------------------------------------------------ helpers
+  const $ = (id) => document.getElementById(id);
+  const esc = (s) => String(s == null ? '' : s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  const nonEmpty = (s) => (typeof s === 'string' && s.trim() ? s.trim() : null);
+  const tick = () => new Promise((r) => requestAnimationFrame(() => setTimeout(r, 0)));
+  const plural = (n, w) => `${n.toLocaleString()} ${w}${n === 1 ? '' : 's'}`;
+  function fmtWords(n) {
+    if (n >= 10000) return Math.round(n / 1000) + 'k words';
+    if (n >= 1000) return (n / 1000).toFixed(1).replace(/\.0$/, '') + 'k words';
+    return plural(n, 'word');
+  }
+  function fmtSize(b) {
+    if (b < 1024) return b + ' B';
+    if (b < 1024 * 1024) return Math.round(b / 1024) + ' KB';
+    return (b / 1024 / 1024).toFixed(1) + ' MB';
+  }
+  const shorten = (s, n) => (s.length > n ? s.slice(0, n - 1) + '…' : s);
+  function friendly(e) {
+    const msg = (e && e.message) || String(e);
+    if (/quota|memory|allocation/i.test(msg)) return 'Your phone ran out of memory for this one. Try converting fewer or smaller files at once.';
+    return msg;
+  }
+  const debounce = (fn, ms) => {
+    let t;
+    return (...a) => {
+      clearTimeout(t);
+      t = setTimeout(() => fn(...a), ms);
+    };
+  };
+
+  let toastTimer;
+  function toast(msg, ms = 2600) {
+    const t = $('toast');
+    t.textContent = msg;
+    t.classList.add('show');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => t.classList.remove('show'), ms);
+  }
+
+  function isTextFile(f) {
+    return /\.(txt|text|md|markdown)$/i.test(f.name) || f.type === 'text/plain' || f.type === 'text/markdown';
+  }
+  function isImageFile(f) {
+    return /^image\//.test(f.type) || /\.(jpe?g|png|webp|gif|heic|heif|avif)$/i.test(f.name);
+  }
+  async function readBytes(file) {
+    if (file.arrayBuffer) return new Uint8Array(await file.arrayBuffer());
+    return new Promise((resolve, reject) => {
+      const r = new FileReader();
+      r.onload = () => resolve(new Uint8Array(r.result));
+      r.onerror = () => reject(new Error('Couldn’t read this file.'));
+      r.readAsArrayBuffer(file);
+    });
+  }
+
+  // ------------------------------------------------------------ parsing
+  function parseOpts() {
+    const s = S.settings;
+    return {
+      chapterMode: s.chapterMode,
+      marker: s.marker,
+      paragraphMode: s.paragraphMode,
+      whitespace: s.whitespace,
+      smartQuotes: s.smartQuotes,
+      dashes: s.dashes,
+      fixMojibake: s.fixMojibake,
+      stripGutenberg: s.stripGutenberg,
+      removeAuthorNotes: s.removeAuthorNotes,
+    };
+  }
+
+  function processBook(b) {
+    b.parsed = null;
+    b.parseError = null;
+    try {
+      if (!b.bytes.length) throw new Error('This file is empty.');
+      if (Encoding.looksLikeRtf(b.bytes)) throw new Error('This is a rich-text (RTF) file, not plain text. Export it as plain text (.txt) first.');
+      if (Encoding.looksBinary(b.bytes)) throw new Error('This doesn’t look like plain text. It may be a PDF, Word or EPUB file with a .txt name. Export it as plain text first.');
+      const enc = b.encoding !== 'auto' ? b.encoding : S.settings.encoding;
+      const dec = Encoding.decode(b.bytes, enc);
+      b.decoded = { encoding: dec.encoding, confidence: dec.confidence, badChars: dec.badChars };
+      b.parsed = Parser.parse(dec.text, b.fileName, parseOpts());
+      if (dec.badChars > 0) {
+        b.parsed.warnings.unshift(`${plural(dec.badChars, 'character')} couldn’t be read. If the text looks garbled, pick another encoding below.`);
+      }
+    } catch (e) {
+      b.parseError = friendly(e);
+    }
+    invalidate(b);
+  }
+
+  function invalidate(b) {
+    if (b) {
+      b.result = null;
+      b.status = b.parseError ? 'error' : 'ready';
+      b.error = null;
+    }
+    S.combined.result = null;
+    S.combined.status = 'ready';
+    S.combined.error = null;
+    S.combined.cache = null;
+  }
+  function invalidateAll() {
+    S.books.forEach(invalidate);
+    invalidate(null);
+  }
+
+  const reparseAll = debounce(() => {
+    S.books.forEach(processBook);
+    renderAll();
+  }, 180);
+
+  // ------------------------------------------------------------ metadata
+  function metaFor(b) {
+    const p = b.parsed || {};
+    return {
+      title: nonEmpty(b.overrides.title) || p.title || Parser.cleanFileTitle(b.fileName) || 'Untitled',
+      author: nonEmpty(b.overrides.author) || p.author || nonEmpty(S.settings.author) || '',
+      language: b.overrides.language || p.language || S.settings.language || 'en',
+      description: nonEmpty(b.overrides.description) || p.description || nonEmpty(S.settings.description) || '',
+    };
+  }
+
+  function combinedParsed() {
+    if (!S.combined.cache) {
+      const ok = S.books.filter((b) => b.parsed);
+      S.combined.cache = ok.length ? Parser.combine(ok.map((b) => b.parsed)) : null;
+    }
+    return S.combined.cache;
+  }
+  function metaForCombined() {
+    const p = combinedParsed() || {};
+    const o = S.combined.overrides;
+    return {
+      title: nonEmpty(o.title) || p.title || 'Collected Chapters',
+      author: nonEmpty(o.author) || p.author || nonEmpty(S.settings.author) || '',
+      language: o.language || p.language || S.settings.language || 'en',
+      description: nonEmpty(o.description) || p.description || nonEmpty(S.settings.description) || '',
+    };
+  }
+
+  /** Output file names for every book, made unique within the batch. */
+  function outputNames() {
+    const map = new Map();
+    if (S.settings.combine) {
+      map.set('combined', Names.safeFileName(metaForCombined().title, 'Combined book') + '.epub');
+      return map;
+    }
+    const ok = S.books.filter((b) => b.parsed);
+    const bases = ok.map((b) => Names.safeFileName(metaFor(b).title, Parser.cleanFileTitle(b.fileName)));
+    Names.uniqueNames(bases).forEach((n, i) => map.set(ok[i].id, n + '.epub'));
+    return map;
+  }
+
+  // ------------------------------------------------------------ covers
+  const readyCovers = () => S.covers.filter((c) => c.data);
+
+  function matchMap() {
+    const books = S.books.filter((b) => b.parsed).map((b) => ({ id: b.id, fileName: b.fileName, title: metaFor(b).title }));
+    return Covers.matchCovers(books, readyCovers().map((c) => ({ id: c.id, name: c.name })));
+  }
+
+  /** What cover a book (or the combined book) will get. */
+  function coverChoice(entity, isCombined, mm) {
+    const pick = entity.cover;
+    if (pick && pick !== 'auto') {
+      if (pick === 'generated' || pick === 'none') return { type: pick, explicit: true };
+      const img = S.covers.find((c) => c.id === pick.coverId && c.data);
+      if (img) return { type: 'image', cover: img, explicit: true };
+    }
+    const mode = S.settings.coverMode;
+    if (mode === 'none') return { type: 'none' };
+    if (mode === 'generated') return { type: 'generated' };
+    const ready = readyCovers();
+    const fallback = { type: S.settings.coverFallback === 'none' ? 'none' : 'generated' };
+    if (mode === 'same') {
+      const img = ready.find((c) => c.id === S.sameCoverId) || ready[0];
+      return img ? { type: 'image', cover: img } : fallback;
+    }
+    // match by name
+    if (isCombined) {
+      const m = Covers.matchCovers(
+        [{ id: 'c', fileName: (S.books[0] && S.books[0].fileName) || '', title: metaForCombined().title }],
+        ready.map((c) => ({ id: c.id, name: c.name }))
+      );
+      const img = ready.find((c) => c.id === m.get('c')) || (ready.length === 1 ? ready[0] : null);
+      return img ? { type: 'image', cover: img } : fallback;
+    }
+    mm = mm || matchMap();
+    const id = mm.get(entity.id);
+    let img = id && ready.find((c) => c.id === id);
+    if (!img && ready.length === 1 && S.books.filter((b) => b.parsed).length === 1) img = ready[0];
+    return img ? { type: 'image', cover: img } : fallback;
+  }
+
+  async function addCoverFiles(files, assignTo) {
+    const added = [];
+    for (const f of files) {
+      const c = { id: 'c' + nextId++, name: f.name || 'cover', status: 'loading', data: null };
+      S.covers.push(c);
+      added.push(c);
+    }
+    renderCovers();
+    for (let i = 0; i < added.length; i++) {
+      const c = added[i];
+      try {
+        c.data = await Covers.processImage(files[i]);
+        c.status = 'ready';
+      } catch (e) {
+        c.status = 'error';
+        c.error = friendly(e);
+        toast(`${c.name}: ${c.error}`, 4000);
+      }
+      renderCovers();
+      await tick();
+    }
+    const good = added.filter((c) => c.data);
+    if (assignTo && good[0]) assignTo.cover = { coverId: good[0].id };
+    if (!S.sameCoverId && good[0]) S.sameCoverId = good[0].id;
+    S.covers = S.covers.filter((c) => c.status !== 'error');
+    invalidateAll();
+    renderAll();
+    if (!assignTo && good.length && S.settings.coverMode === 'match' && S.books.length) {
+      const mm = matchMap();
+      const hits = good.filter((c) => [...mm.values()].includes(c.id)).length;
+      toast(hits ? `Matched ${hits} of ${good.length} cover${good.length === 1 ? '' : 's'} by name.` : 'No covers matched by name. Tap a book’s cover to choose one.', 3500);
+    }
+  }
+
+  function removeCover(id) {
+    const c = S.covers.find((x) => x.id === id);
+    if (c && c.data) URL.revokeObjectURL(c.data.url);
+    S.covers = S.covers.filter((x) => x.id !== id);
+    if (S.sameCoverId === id) S.sameCoverId = S.covers[0] ? S.covers[0].id : null;
+    S.books.forEach((b) => {
+      if (b.cover && b.cover.coverId === id) b.cover = 'auto';
+    });
+    if (S.combined.cover && S.combined.cover.coverId === id) S.combined.cover = 'auto';
+    invalidateAll();
+    renderAll();
+  }
+
+  // ------------------------------------------------------------ adding files
+  async function addFiles(fileList) {
+    const files = [...fileList];
+    const texts = files.filter(isTextFile);
+    const images = files.filter((f) => !isTextFile(f) && isImageFile(f));
+    const other = files.filter((f) => !isTextFile(f) && !isImageFile(f));
+    if (other.length) toast(`Skipped ${plural(other.length, 'file')} that ${other.length === 1 ? 'isn’t' : 'aren’t'} .txt or an image: ${other.map((f) => f.name).join(', ')}`, 4500);
+
+    for (const f of texts) {
+      const b = {
+        id: 'b' + nextId++,
+        fileName: f.name,
+        size: f.size,
+        bytes: new Uint8Array(0),
+        encoding: 'auto',
+        overrides: {},
+        cover: 'auto',
+        status: 'ready',
+        result: null,
+      };
+      try {
+        b.bytes = await readBytes(f);
+        processBook(b);
+      } catch (e) {
+        b.parseError = friendly(e);
+        b.status = 'error';
+      }
+      S.books.push(b);
+      if (texts.length > 3) await tick();
+    }
+    // Chapter-per-file batches: keep them in natural order (Ch 2 before Ch 10)
+    if (texts.length > 1) S.books.sort((a, b) => a.fileName.localeCompare(b.fileName, undefined, { numeric: true, sensitivity: 'base' }));
+    invalidate(null);
+    renderAll();
+    if (images.length) await addCoverFiles(images);
+    if (texts.length) {
+      const bad = S.books.filter((b) => b.parseError).length;
+      toast(bad ? `Added ${plural(texts.length, 'file')}. ${bad} couldn’t be read; see the red notes.` : `Added ${plural(texts.length, 'file')}. Check the titles, then tap Convert.`);
+    }
+  }
+
+  function removeBook(id) {
+    const b = S.books.find((x) => x.id === id);
+    S.books = S.books.filter((x) => x.id !== id);
+    invalidate(null);
+    renderAll();
+    if (b) toast(`Removed ${b.fileName}`);
+  }
+
+  function moveBook(id, dir) {
+    const i = S.books.findIndex((b) => b.id === id);
+    const j = i + dir;
+    if (i < 0 || j < 0 || j >= S.books.length) return;
+    [S.books[i], S.books[j]] = [S.books[j], S.books[i]];
+    invalidate(null);
+    renderAll();
+  }
+
+  // ------------------------------------------------------------ rendering
+  function coverSlotHtml(choice, title) {
+    if (choice.type === 'image') return `<img src="${choice.cover.data.url}" alt="">`;
+    if (choice.type === 'generated') {
+      const [a, b, acc] = Covers.paletteFor(title);
+      return `<span class="gen" style="background:linear-gradient(170deg,${b},${a})">${esc(shorten(title, 44))}<i style="background:${acc}"></i></span>`;
+    }
+    return '<span class="none">No cover</span>';
+  }
+
+  function statusHtml(entity, extra) {
+    if (entity.parseError) return `<span class="status error"><svg><use href="#i-alert"/></svg>Can’t read this file</span>`;
+    switch (entity.status) {
+      case 'working':
+        return '<span class="status working">Building…</span>';
+      case 'done':
+        return `<span class="status done"><svg><use href="#i-check"/></svg>Done · ${fmtSize(entity.result.blob.size)}</span>`;
+      case 'error':
+        return `<span class="status error"><svg><use href="#i-alert"/></svg>Failed</span>`;
+      default:
+        return `<span class="status ready">Ready${extra ? ' · ' + extra : ''}</span>`;
+    }
+  }
+
+  function actionsHtml(entity) {
+    if (entity.status !== 'done' || !entity.result) return '';
+    const file = new File([entity.result.blob], entity.result.name, { type: 'application/epub+zip' });
+    const canShare = Platform.canShareFiles([file]);
+    const canSave = Platform.canSave();
+    const shareLabel = Platform.isIOS ? 'Open in Books' : 'Share';
+    const saveLabel = Platform.isIOS && !Platform.inClaude ? 'Save to Files' : 'Download';
+    const btns = [];
+    if (canShare) btns.push(`<button type="button" class="btn primary small" data-action="share"><svg class="ic"><use href="#i-share"/></svg>${shareLabel}</button>`);
+    if (canSave) btns.push(`<button type="button" class="btn small" data-action="save"><svg class="ic"><use href="#i-down"/></svg>${saveLabel}</button>`);
+    if (!btns.length) return '<p class="hint">Saving isn’t available in this view.</p>';
+    return `<div class="book-actions${btns.length === 1 ? ' one' : ''}">${btns.join('')}</div>`;
+  }
+
+  function langOptions(selected, includeDefault) {
+    const list = LANGS.slice();
+    if (selected && !list.some(([c]) => c === selected)) list.push([selected, selected]);
+    const def = includeDefault ? `<option value=""${!selected ? ' selected' : ''}>Default (${esc(langName(S.settings.language))})</option>` : '';
+    return def + list.map(([c, n]) => `<option value="${c}"${c === selected ? ' selected' : ''}>${esc(n)} (${c})</option>`).join('');
+  }
+
+  function encodingOptions(selected, autoLabel) {
+    return [`<option value="auto"${selected === 'auto' ? ' selected' : ''}>${esc(autoLabel)}</option>`]
+      .concat(Encoding.supportedEncodings().map(([v, l]) => `<option value="${v}"${v === selected ? ' selected' : ''}>${esc(l)}</option>`))
+      .join('');
+  }
+
+  function tocHtml(parsed, bookId) {
+    const secs = parsed.sections;
+    const LIMIT = 400;
+    const rows = secs.slice(0, LIMIT).map((s, i) => {
+      const title = s.opening ? 'Opening text (not in contents)' : s.title || '(untitled)';
+      return `<li class="${s.opening ? 'opening' : ''} ${s.level === 2 ? 'lv2' : ''}"><details data-sec="${i}" data-book="${bookId}"><summary><span class="t">${esc(title)}</span><span class="w">${fmtWords(s.words || 0)}</span></summary><div class="excerpt"></div></details></li>`;
+    });
+    if (secs.length > LIMIT) rows.push(`<li><details><summary><span class="t">…and ${secs.length - LIMIT} more</span></summary></details></li>`);
+    return `<p class="toc-head">${plural(parsed.stats.chapters, 'chapter')} · tap one to peek</p><ol class="toc">${rows.join('')}</ol>`;
+  }
+
+  function excerptHtml(section) {
+    const out = [];
+    let chars = 0;
+    for (const p of section.paras) {
+      if (out.length >= 3 || chars > 500) break;
+      if (p.k === 'p') {
+        out.push(`<p>${esc(shorten(p.t, 260))}</p>`);
+        chars += p.t.length;
+      } else if (p.k === 'br') {
+        out.push(`<p>${p.lines.slice(0, 4).map((l) => esc(shorten(l, 120))).join('<br>')}</p>`);
+        chars += 200;
+      } else if (p.k === 'scene') out.push('<p style="text-align:center">* * *</p>');
+    }
+    return out.join('') || '<p><i>(empty)</i></p>';
+  }
+
+  function bookCardHtml(b, name, choice) {
+    const m = metaFor(b);
+    const p = b.parsed;
+    let meta = '';
+    if (p) {
+      const enc = b.decoded && (b.decoded.encoding !== 'utf-8' || b.decoded.confidence === 'guess')
+        ? ` · ${Encoding.labelFor(b.decoded.encoding).replace(/\s*\(.*\)$/, '')}${b.decoded.confidence === 'guess' ? ' (guessed)' : ''}`
+        : '';
+      const src = nonEmpty(b.overrides.title) ? 'title edited' : SOURCE_LABEL[p.titleSource] || '';
+      meta = `${src} · ${plural(p.stats.chapters, 'chapter')} · ${fmtWords(p.stats.words)}${enc}`;
+    } else meta = esc(b.fileName);
+
+    const details = p
+      ? `<details class="more"><summary>Details &amp; chapters</summary>
+          <div class="fields">
+            <label class="field"><span>Author</span><input type="text" data-field="author" value="${esc(b.overrides.author || '')}" placeholder="${esc(m.author || 'Unknown')}" autocomplete="off"></label>
+            <label class="field"><span>Language</span><select data-field="language">${langOptions(b.overrides.language || p.language || '', !p.language)}</select></label>
+            <label class="field"><span>Description</span><textarea data-field="description" rows="2" placeholder="${esc(m.description || 'Optional')}">${esc(b.overrides.description || '')}</textarea></label>
+            <label class="field"><span>Text encoding</span><select data-field="encoding">${encodingOptions(b.encoding, b.encoding === 'auto' && b.decoded ? `Auto (${Encoding.labelFor(b.decoded.encoding)})` : 'Use default')}</select></label>
+          </div>
+          ${p.warnings.length ? `<ul class="warnings">${p.warnings.map((w) => `<li>${esc(w)}</li>`).join('')}</ul>` : ''}
+          ${tocHtml(p, b.id)}
+          <p class="src">Source: ${esc(b.fileName)} (${fmtSize(b.size)})</p>
+        </details>`
+      : '';
+
+    return `<article class="card book" data-id="${b.id}">
+      <div class="book-top">
+        <button type="button" class="cover-slot" data-action="cover" aria-label="Change cover">${coverSlotHtml(choice, m.title)}<span class="badge"><svg><use href="#i-image"/></svg></span></button>
+        <div class="book-main">
+          <input class="title-input" data-field="title" value="${esc(nonEmpty(b.overrides.title) || m.title)}" aria-label="Book title" enterkeyhint="done" autocomplete="off" ${p ? '' : 'disabled'}>
+          <p class="book-meta">${esc(meta)}</p>
+          ${p ? `<p class="book-out">Saves as <b class="fname">${esc(name || '')}</b></p>` : ''}
+          ${statusHtml(b)}
+          ${b.parseError ? `<p class="err-text">${esc(b.parseError)}</p>` : ''}
+          ${b.status === 'error' && b.error ? `<p class="err-text">${esc(b.error)}</p>` : ''}
+        </div>
+        <button type="button" class="icon-btn remove" data-action="remove" aria-label="Remove ${esc(b.fileName)}"><svg><use href="#i-x"/></svg></button>
+      </div>
+      ${actionsHtml(b)}
+      ${details}
+    </article>`;
+  }
+
+  function combinedCardHtml(name, choice) {
+    const p = combinedParsed();
+    const m = metaForCombined();
+    const C = S.combined;
+    const files = S.books
+      .map((b, i) => `<li class="${b.parsed ? '' : 'bad'}" data-id="${b.id}"><span class="n">${i + 1}</span><span class="f">${esc(b.fileName)}<small>${b.parsed ? esc(`${b.parsed.hadHeadings ? plural(b.parsed.stats.chapters, 'chapter') : 'one chapter: ' + shorten(b.parsed.singleChapterTitle || b.parsed.title, 40)}`) : esc(b.parseError || '')}</small></span>
+        <button type="button" class="icon-btn" data-action="up" aria-label="Move up" ${i === 0 ? 'disabled' : ''}><svg><use href="#i-up"/></svg></button>
+        <button type="button" class="icon-btn" data-action="down" aria-label="Move down" ${i === S.books.length - 1 ? 'disabled' : ''}><svg><use href="#i-dn"/></svg></button>
+        <button type="button" class="icon-btn" data-action="remove" aria-label="Remove"><svg><use href="#i-x"/></svg></button></li>`)
+      .join('');
+    const ok = S.books.filter((b) => b.parsed).length;
+    const meta = p ? `combined from ${plural(ok, 'file')} · ${plural(p.stats.chapters, 'chapter')} · ${fmtWords(p.stats.words)}` : 'No readable files yet';
+    return `<article class="card book" data-id="combined">
+      <div class="book-top">
+        <button type="button" class="cover-slot" data-action="cover" aria-label="Change cover">${coverSlotHtml(choice, m.title)}<span class="badge"><svg><use href="#i-image"/></svg></span></button>
+        <div class="book-main" style="padding-right:0">
+          <input class="title-input" data-field="title" value="${esc(nonEmpty(C.overrides.title) || m.title)}" aria-label="Book title" enterkeyhint="done" autocomplete="off">
+          <p class="book-meta">${esc(meta)}</p>
+          ${p ? `<p class="book-out">Saves as <b class="fname">${esc(name || '')}</b></p>` : ''}
+          ${statusHtml(C)}
+          ${C.status === 'error' && C.error ? `<p class="err-text">${esc(C.error)}</p>` : ''}
+        </div>
+      </div>
+      ${actionsHtml(C)}
+      <details class="more" open><summary>Files, in reading order</summary><ol class="order">${files}</ol></details>
+      ${p ? `<details class="more"><summary>Details &amp; chapters</summary>
+        <div class="fields">
+          <label class="field"><span>Author</span><input type="text" data-field="author" value="${esc(C.overrides.author || '')}" placeholder="${esc(m.author || 'Unknown')}" autocomplete="off"></label>
+          <label class="field"><span>Language</span><select data-field="language">${langOptions(C.overrides.language || p.language || '', !p.language)}</select></label>
+          <label class="field"><span>Description</span><textarea data-field="description" rows="2" placeholder="${esc(m.description || 'Optional')}">${esc(C.overrides.description || '')}</textarea></label>
+        </div>
+        ${tocHtml(p, 'combined')}
+      </details>` : ''}
+    </article>`;
+  }
+
+  function renderBooks() {
+    const list = $('bookList');
+    const names = outputNames();
+    if (S.settings.combine && S.books.length) {
+      list.innerHTML = combinedCardHtml(names.get('combined'), coverChoice(S.combined, true));
+      return;
+    }
+    const mm = matchMap();
+    list.innerHTML = S.books.map((b) => bookCardHtml(b, names.get(b.id), coverChoice(b, false, mm))).join('');
+  }
+
+  function renderMode() {
+    const show = S.books.length >= 2 || (S.settings.combine && S.books.length >= 1);
+    $('modeCard').hidden = !show;
+    document.querySelectorAll('#modeCard [data-combine]').forEach((btn) => btn.setAttribute('aria-checked', String(String(+!!S.settings.combine) === btn.dataset.combine)));
+    $('modeHint').textContent = S.settings.combine
+      ? 'All files become one EPUB, in the order shown. Files without their own headings become one chapter each.'
+      : 'Each file becomes its own EPUB, named after its detected title.';
+    $('addLabel').textContent = S.books.length ? 'Add more TXT files' : 'Choose TXT files';
+    $('addHint').hidden = S.books.length > 0;
+    $('addCard').classList.toggle('compact', S.books.length > 0);
+  }
+
+  function renderCovers() {
+    const mode = S.settings.coverMode;
+    document.querySelectorAll('#coverModeSeg [data-cover-mode]').forEach((btn) => btn.setAttribute('aria-checked', String(btn.dataset.coverMode === mode)));
+    const hints = {
+      match: 'Add images named like your files (e.g. “My Story.jpg” for “My Story.txt”). Each book gets the image whose name matches its file name or title.',
+      same: 'Every book gets the same image. Tap an image to choose which one.',
+      generated: 'Each book gets a simple cover with its title and author.',
+      none: 'Books are made without a cover. Apple Books will show a plain placeholder.',
+    };
+    $('coverModeHint').textContent = hints[mode];
+    $('fallbackField').hidden = mode !== 'match';
+    $('coverFallback').value = S.settings.coverFallback;
+
+    const mm = mode === 'match' ? matchMap() : new Map();
+    const matchedTo = new Map();
+    for (const [bookId, coverId] of mm) {
+      const b = S.books.find((x) => x.id === bookId);
+      if (b) matchedTo.set(coverId, metaFor(b).title);
+    }
+    const sel = mode === 'same' ? (readyCovers().find((c) => c.id === S.sameCoverId) || readyCovers()[0] || {}).id : null;
+    $('coverTray').innerHTML = S.covers
+      .map((c) => {
+        const cap = c.status === 'loading' ? 'Resizing…' : matchedTo.has(c.id) ? '→ ' + matchedTo.get(c.id) : c.name;
+        return `<div class="tray-item${c.id === sel ? ' selected' : ''}" data-cover="${c.id}">
+          <button type="button" class="pick" data-action="pick-cover" aria-label="${esc(c.name)}">${c.data ? `<img src="${c.data.url}" alt="">` : '<span class="busy">…</span>'}</button>
+          <span class="cap${matchedTo.has(c.id) ? ' matched' : ''}">${esc(cap)}</span>
+          <button type="button" class="del" data-action="del-cover" aria-label="Remove ${esc(c.name)}"><svg><use href="#i-x"/></svg></button>
+        </div>`;
+      })
+      .join('');
+    const labels = { match: 'Match names', same: 'Same for all', generated: 'Text covers', none: 'None' };
+    $('coverSummary').textContent = labels[mode] + (S.covers.length ? ` · ${S.covers.length} image${S.covers.length === 1 ? '' : 's'}` : '');
+  }
+
+  function renderSummaries() {
+    const s = S.settings;
+    $('metaSummary').textContent = `${Epub.STYLES[s.style] ? Epub.STYLES[s.style].name : ''} · ${langName(s.language)}`;
+    const ch = { auto: 'Auto chapters', marker: 'Marker chapters', none: 'No chapters' }[s.chapterMode];
+    $('textSummary').textContent = `${ch}${s.smartQuotes ? ' · smart quotes' : ''}`;
+  }
+
+  function jobs() {
+    if (S.settings.combine) return combinedParsed() ? [S.combined] : [];
+    return S.books.filter((b) => b.parsed);
+  }
+
+  function renderActionBar() {
+    const bar = $('actionBar');
+    bar.hidden = S.books.length === 0;
+    const all = jobs();
+    const pending = all.filter((j) => !j.result);
+    const done = all.filter((j) => j.result);
+    const convert = $('convertBtn');
+    const shareAll = $('shareAllBtn');
+    const zip = $('zipBtn');
+
+    if (S.busy) {
+      convert.hidden = false;
+      convert.disabled = true;
+      convert.textContent = 'Working…';
+      shareAll.hidden = zip.hidden = true;
+      return;
+    }
+    convert.disabled = all.length === 0;
+    if (pending.length || !done.length) {
+      convert.hidden = false;
+      shareAll.hidden = zip.hidden = true;
+      const n = pending.length || all.length;
+      convert.textContent = S.settings.combine ? 'Build combined book' : done.length ? `Convert ${plural(n, 'changed book')}` : n === 1 ? 'Convert to EPUB' : `Convert ${n} books`;
+      if (!all.length) convert.textContent = 'Nothing to convert yet';
+      return;
+    }
+    // All done
+    convert.hidden = true;
+    const files = done.map((j) => new File([j.result.blob], j.result.name, { type: 'application/epub+zip' }));
+    const canShare = Platform.canShareFiles(files);
+    shareAll.hidden = !canShare;
+    shareAll.querySelector('span').textContent = done.length === 1 ? (Platform.isIOS ? 'Open in Books' : 'Share') : `Share all ${done.length}`;
+    zip.hidden = !Platform.canSave();
+    zip.querySelector('span').textContent = done.length === 1 ? (canShare ? 'Save' : 'Download EPUB') : canShare ? 'ZIP' : `Download all (.zip)`;
+    zip.classList.toggle('primary', !canShare);
+    zip.style.flex = canShare ? '' : '1';
+  }
+
+  function setProgress(done, total, text) {
+    $('progress').hidden = false;
+    $('progressBar').style.width = (total ? (done / total) * 100 : 0) + '%';
+    $('progressText').textContent = text;
+  }
+
+  function renderOffline() {
+    const el = $('offlineState');
+    if (Platform.inClaude) {
+      el.textContent = 'Claude-hosted version (needs internet).';
+      el.className = '';
+    } else if (Platform.offlineReady) {
+      el.textContent = '✓ Ready to work offline';
+      el.className = 'ok';
+    } else {
+      el.textContent = '';
+    }
+    const n = $('hostNotice');
+    if (Platform.inClaude) {
+      n.hidden = false;
+      n.textContent = Platform.claudeDownloads === null && Platform._resolved
+        ? 'Downloads aren’t available in this view. Open this page in Safari, or install the offline version (see the README).'
+        : 'You’re using the Claude-hosted version. It needs internet and asks you to confirm each download. For the offline home-screen app, see the README.';
+    }
+  }
+
+  function renderAll() {
+    renderMode();
+    renderBooks();
+    renderCovers();
+    renderSummaries();
+    renderActionBar();
+    renderOffline();
+  }
+
+  /** Re-render one book card in place (keeps scroll position). */
+  function updateCard(entity) {
+    if (entity === S.combined || S.settings.combine) {
+      renderBooks();
+      return;
+    }
+    const el = document.querySelector(`.book[data-id="${entity.id}"]`);
+    if (!el) return renderBooks();
+    const wasOpen = !!el.querySelector('details.more[open]');
+    const tmp = document.createElement('div');
+    tmp.innerHTML = bookCardHtml(entity, outputNames().get(entity.id), coverChoice(entity, false));
+    const fresh = tmp.firstElementChild;
+    if (wasOpen) fresh.querySelector('details.more') && fresh.querySelector('details.more').setAttribute('open', '');
+    el.replaceWith(fresh);
+  }
+
+  // ------------------------------------------------------------ convert
+  async function coverPayload(choice, title, author) {
+    if (choice.type === 'image') {
+      const d = choice.cover.data;
+      return { bytes: new Uint8Array(await d.blob.arrayBuffer()), width: d.width, height: d.height };
+    }
+    if (choice.type === 'generated') {
+      const g = await Covers.generateCover(title, author);
+      URL.revokeObjectURL(g.url);
+      return { bytes: new Uint8Array(await g.blob.arrayBuffer()), width: g.width, height: g.height };
+    }
+    return null;
+  }
+
+  async function convert() {
+    if (S.busy) return;
+    const list = jobs().filter((j) => !j.result);
+    if (!list.length) return;
+    S.busy = true;
+    renderActionBar();
+    const names = outputNames();
+    const mm = matchMap();
+    let ok = 0;
+    let failed = 0;
+    for (let i = 0; i < list.length; i++) {
+      const job = list[i];
+      const isC = job === S.combined;
+      const m = isC ? metaForCombined() : metaFor(job);
+      setProgress(i, list.length, `Building ${i + 1} of ${list.length} · ${shorten(m.title, 40)}`);
+      job.status = 'working';
+      job.error = null;
+      updateCard(job);
+      await tick();
+      try {
+        const cover = await coverPayload(coverChoice(job, isC, mm), m.title, m.author);
+        const blob = await Epub.build(isC ? combinedParsed() : job.parsed, {
+          title: m.title,
+          author: m.author,
+          language: m.language,
+          description: m.description,
+          style: S.settings.style,
+          cover,
+          emphasis: S.settings.emphasis,
+          preserve: S.settings.whitespace === 'preserve',
+        });
+        job.result = { blob, name: names.get(isC ? 'combined' : job.id) };
+        job.status = 'done';
+        ok++;
+      } catch (e) {
+        console.error(e);
+        job.status = 'error';
+        job.error = 'Couldn’t build this book: ' + friendly(e);
+        failed++;
+      }
+      updateCard(job);
+    }
+    setProgress(list.length, list.length, failed ? `${ok} done, ${failed} failed` : `${plural(ok, 'book')} ready`);
+    S.busy = false;
+    renderActionBar();
+    setTimeout(() => {
+      if (!S.busy) $('progress').hidden = true;
+    }, 2500);
+    if (failed) toast(`${failed} book${failed === 1 ? '' : 's'} failed. See the red notes.`, 4000);
+  }
+
+  // ------------------------------------------------------------ save / share
+  function resultFile(entity) {
+    return new File([entity.result.blob], entity.result.name, { type: 'application/epub+zip' });
+  }
+
+  // These run straight from the tap (no awaits before navigator.share), which iOS requires.
+  function shareEntities(list) {
+    const files = list.map(resultFile);
+    if (!Platform.canShareFiles(files)) return saveEntities(list);
+    Platform.share(files, list.length === 1 ? files[0].name : `${files.length} books`).catch((e) => {
+      toast('Sharing failed (' + friendly(e) + '). Saving instead.');
+      saveEntities(list);
+    });
+  }
+
+  async function saveEntities(list) {
+    try {
+      if (list.length === 1) {
+        const ok = await Platform.save(list[0].result.blob, list[0].result.name);
+        if (ok && Platform.isIOS && !Platform.inClaude) toast('Saved. Find it in Files → Downloads, then share it to Books.', 4000);
+        return;
+      }
+      const zip = new T2E.Zip.ZipWriter();
+      for (const j of list) zip.add(j.result.name, new Uint8Array(await j.result.blob.arrayBuffer()), { compress: false });
+      const blob = await zip.toBlob('application/zip');
+      const d = new Date();
+      const stamp = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+      await Platform.save(blob, `EPUBs ${stamp}.zip`);
+    } catch (e) {
+      toast(friendly(e), 4500);
+    }
+  }
+
+  // ------------------------------------------------------------ sheets
+  function openSheet(title, html, onClick) {
+    $('sheetTitle').textContent = title;
+    $('sheetBody').innerHTML = html;
+    $('sheet').hidden = false;
+    $('sheet')._onClick = onClick;
+    document.body.style.overflow = 'hidden';
+  }
+  function closeSheet() {
+    $('sheet').hidden = true;
+    $('sheet')._onClick = null;
+    document.body.style.overflow = '';
+  }
+
+  let coverTarget = null;
+  function openCoverSheet(entity) {
+    const isC = entity === S.combined;
+    const m = isC ? metaForCombined() : metaFor(entity);
+    const cur = entity.cover;
+    const auto = coverChoice(Object.assign({}, entity, { cover: 'auto' }), isC);
+    const autoDesc = auto.type === 'image' ? 'image' : auto.type === 'generated' ? 'text cover' : 'no cover';
+    const pressed = (v) => (JSON.stringify(cur) === JSON.stringify(v) ? 'true' : 'false');
+    const [a, b] = Covers.paletteFor(m.title);
+    const imgs = readyCovers()
+      .map((c) => `<button type="button" class="choice" data-pick='${esc(JSON.stringify({ coverId: c.id }))}' aria-pressed="${pressed({ coverId: c.id })}" aria-label="${esc(c.name)}"><img src="${c.data.url}" alt=""></button>`)
+      .join('');
+    const html = `
+      <div class="choice-grid">
+        <button type="button" class="choice" data-pick='"auto"' aria-pressed="${pressed('auto')}">Automatic<br><small style="font-weight:500">(${autoDesc})</small></button>
+        ${imgs}
+        <button type="button" class="choice" data-pick='"generated"' aria-pressed="${pressed('generated')}" aria-label="Text cover"><span class="gen" style="background:linear-gradient(170deg,${b},${a})">${esc(shorten(m.title, 30))}</span></button>
+        <button type="button" class="choice" data-pick='"none"' aria-pressed="${pressed('none')}">No cover</button>
+      </div>
+      <label class="btn" for="oneCoverInput"><svg class="ic"><use href="#i-plus"/></svg>Choose a new image…</label>
+      <p class="hint small">Automatic follows the Covers setting (${esc({ match: 'match names', same: 'same for all', generated: 'text cover', none: 'none' }[S.settings.coverMode])}).</p>`;
+    coverTarget = entity;
+    openSheet(`Cover for “${shorten(m.title, 40)}”`, html, (btn) => {
+      const v = btn.dataset.pick;
+      if (!v) return;
+      entity.cover = JSON.parse(v);
+      invalidate(isC ? null : entity);
+      if (isC) invalidate(null);
+      closeSheet();
+      renderAll();
+    });
+  }
+
+  function openHelp() {
+    const inClaude = Platform.inClaude;
+    openSheet(
+      'Using it on iPhone',
+      `<h3>Install as an app (offline)</h3>
+      <ol>
+        <li>Open the GitHub Pages copy of this page in <b>Safari</b>${inClaude ? ' (see the README for the 5-minute setup)' : ''}.</li>
+        <li>Tap the <b>Share</b> button, then <b>Add to Home Screen</b>.</li>
+        <li>Open it once from the new icon while online. After that it works offline.</li>
+      </ol>
+      <h3>Convert</h3>
+      <ol>
+        <li>Tap <b>Choose TXT files</b> and pick files from the Files app (iCloud Drive, On My iPhone, Downloads…).</li>
+        <li>Check the titles. Tap <b>Details &amp; chapters</b> to see what was detected.</li>
+        <li>Tap <b>Convert</b>, then <b>Open in Books</b> and pick <b>Books</b> in the share sheet.</li>
+      </ol>
+      <h3>Good to know</h3>
+      <ul>
+        <li>Several books at once: <b>Share all</b> sends them together, or <b>ZIP</b> saves one archive to Files.</li>
+        <li>Chapter files from the same story? Switch to <b>One combined book</b>.</li>
+        <li>Odd characters like Ã© or â€™? Turn on <b>Fix garbled characters</b>, or change the encoding under a book’s details.</li>
+        <li>Your settings are remembered on this device. The home-screen app keeps its own copy, separate from Safari.</li>
+      </ul>`,
+      null
+    );
+  }
+
+  // ------------------------------------------------------------ settings UI
+  const TEXT_KEYS = ['chapterMode', 'marker', 'paragraphMode', 'whitespace', 'smartQuotes', 'dashes', 'fixMojibake', 'stripGutenberg', 'removeAuthorNotes', 'encoding'];
+
+  function fillSettingsUI() {
+    const s = S.settings;
+    $('defAuthor').value = s.author;
+    $('defLanguage').innerHTML = langOptions(s.language, false);
+    $('defDescription').value = s.description;
+    $('chapterMode').value = s.chapterMode;
+    $('marker').value = s.marker;
+    $('paragraphMode').value = s.paragraphMode;
+    $('whitespace').value = s.whitespace;
+    $('encoding').innerHTML = encodingOptions(s.encoding, 'Auto-detect');
+    for (const k of ['smartQuotes', 'dashes', 'fixMojibake', 'stripGutenberg', 'removeAuthorNotes', 'emphasis']) $(k).checked = !!s[k];
+    $('styleList').innerHTML = Object.entries(Epub.STYLES)
+      .map(
+        ([id, st]) => `<button type="button" class="style-opt" role="radio" data-style="${id}" aria-checked="${id === s.style}">
+          <b>${esc(st.name)}</b><small>${esc(st.hint)}</small>
+          <span class="sample ${id}" aria-hidden="true"><i>The lanterns flickered as the river ran past the old stone houses of the town.</i><i>Somewhere a dog barked at nothing in particular.</i></span>
+        </button>`
+      )
+      .join('');
+  }
+
+  function setSetting(key, value) {
+    S.settings[key] = value;
+    Settings.save(S.settings);
+    if (TEXT_KEYS.includes(key)) {
+      reparseAll();
+    } else {
+      invalidateAll();
+      renderAll();
+    }
+    renderSummaries();
+  }
+
+  // ------------------------------------------------------------ events
+  function bind() {
+    $('txtInput').addEventListener('change', (e) => {
+      const files = e.target.files;
+      if (files && files.length) addFiles(files);
+      e.target.value = ''; // lets you pick the same file again
+    });
+    $('coverInput').addEventListener('change', (e) => {
+      if (e.target.files && e.target.files.length) addCoverFiles([...e.target.files]);
+      e.target.value = '';
+    });
+    $('oneCoverInput').addEventListener('change', (e) => {
+      const f = e.target.files && e.target.files[0];
+      e.target.value = '';
+      if (!f) return;
+      const target = coverTarget;
+      closeSheet();
+      addCoverFiles([f], target);
+    });
+
+    // Mode switch
+    $('modeCard').addEventListener('click', (e) => {
+      const btn = e.target.closest('[data-combine]');
+      if (!btn) return;
+      S.settings.combine = btn.dataset.combine === '1';
+      Settings.save(S.settings);
+      invalidateAll();
+      renderAll();
+    });
+
+    // Cover panel
+    $('coverModeSeg').addEventListener('click', (e) => {
+      const btn = e.target.closest('[data-cover-mode]');
+      if (btn) setSetting('coverMode', btn.dataset.coverMode);
+    });
+    $('coverFallback').addEventListener('change', (e) => setSetting('coverFallback', e.target.value));
+    $('coverTray').addEventListener('click', (e) => {
+      const item = e.target.closest('[data-cover]');
+      if (!item) return;
+      const id = item.dataset.cover;
+      if (e.target.closest('[data-action="del-cover"]')) return removeCover(id);
+      if (S.settings.coverMode !== 'same') {
+        S.settings.coverMode = 'same';
+        Settings.save(S.settings);
+        toast('Using this cover for every book.');
+      }
+      S.sameCoverId = id;
+      invalidateAll();
+      renderAll();
+    });
+
+    // Defaults
+    $('defAuthor').addEventListener('input', debounce((e) => setSetting('author', e.target.value), 300));
+    $('defLanguage').addEventListener('change', (e) => setSetting('language', e.target.value));
+    $('defDescription').addEventListener('input', debounce((e) => setSetting('description', e.target.value), 400));
+    $('styleList').addEventListener('click', (e) => {
+      const btn = e.target.closest('[data-style]');
+      if (!btn) return;
+      document.querySelectorAll('#styleList [data-style]').forEach((x) => x.setAttribute('aria-checked', String(x === btn)));
+      setSetting('style', btn.dataset.style);
+    });
+
+    // Text options
+    for (const k of ['chapterMode', 'paragraphMode', 'whitespace', 'encoding']) $(k).addEventListener('change', (e) => setSetting(k, e.target.value));
+    $('marker').addEventListener('input', debounce((e) => setSetting('marker', e.target.value), 450));
+    for (const k of ['smartQuotes', 'dashes', 'fixMojibake', 'stripGutenberg', 'removeAuthorNotes', 'emphasis']) $(k).addEventListener('change', (e) => setSetting(k, e.target.checked));
+    let resetArmed = false;
+    $('resetSettings').addEventListener('click', (e) => {
+      if (!resetArmed) {
+        resetArmed = true;
+        e.target.textContent = 'Tap again to reset everything';
+        setTimeout(() => {
+          resetArmed = false;
+          e.target.textContent = 'Reset all settings';
+        }, 3000);
+        return;
+      }
+      resetArmed = false;
+      e.target.textContent = 'Reset all settings';
+      S.settings = Object.assign({}, Settings.DEFAULTS);
+      Settings.save(S.settings);
+      fillSettingsUI();
+      S.books.forEach(processBook);
+      renderAll();
+      toast('Settings reset.');
+    });
+
+    // Book list: clicks
+    $('bookList').addEventListener('click', (e) => {
+      const card = e.target.closest('.book');
+      if (!card) return;
+      const isC = card.dataset.id === 'combined';
+      const btn = e.target.closest('[data-action]');
+      if (!btn) return;
+      const action = btn.dataset.action;
+      const rowId = btn.closest('.order li') ? btn.closest('.order li').dataset.id : null;
+      const entity = isC ? S.combined : S.books.find((b) => b.id === card.dataset.id);
+      if (action === 'remove') return removeBook(rowId || card.dataset.id);
+      if (action === 'up') return moveBook(rowId, -1);
+      if (action === 'down') return moveBook(rowId, 1);
+      if (!entity) return;
+      if (action === 'cover') return openCoverSheet(entity);
+      if (action === 'share' && entity.result) return shareEntities([entity]);
+      if (action === 'save' && entity.result) return saveEntities([entity]);
+    });
+
+    // Book list: edits
+    $('bookList').addEventListener('input', (e) => {
+      const field = e.target.dataset.field;
+      if (!field || field === 'encoding' || field === 'language') return;
+      const card = e.target.closest('.book');
+      const isC = card.dataset.id === 'combined';
+      const entity = isC ? S.combined : S.books.find((b) => b.id === card.dataset.id);
+      if (!entity) return;
+      entity.overrides[field] = e.target.value;
+      const wasDone = !!entity.result;
+      invalidate(isC ? null : entity);
+      if (field === 'title') {
+        const names = outputNames();
+        const f = card.querySelector('.fname');
+        if (f) f.textContent = names.get(isC ? 'combined' : entity.id) || '';
+      }
+      if (wasDone) {
+        const st = card.querySelector('.status');
+        if (st) st.outerHTML = statusHtml(entity);
+        const acts = card.querySelector('.book-actions');
+        if (acts) acts.remove();
+      }
+      renderActionBar();
+    });
+    $('bookList').addEventListener('change', (e) => {
+      const field = e.target.dataset.field;
+      const card = e.target.closest('.book');
+      if (!card || !field) return;
+      const isC = card.dataset.id === 'combined';
+      const entity = isC ? S.combined : S.books.find((b) => b.id === card.dataset.id);
+      if (!entity) return;
+      if (field === 'encoding') {
+        entity.encoding = e.target.value;
+        processBook(entity);
+        updateCard(entity);
+        renderActionBar();
+        toast('Re-read with ' + (e.target.value === 'auto' ? 'automatic encoding' : Encoding.labelFor(e.target.value)));
+      } else if (field === 'language') {
+        entity.overrides.language = e.target.value;
+        invalidate(isC ? null : entity);
+        renderActionBar();
+      } else if (field === 'title') {
+        // Tidy: an emptied title falls back to the detected one
+        if (!e.target.value.trim()) {
+          delete entity.overrides.title;
+          updateCard(entity);
+        }
+        if (S.settings.coverMode !== 'none') renderCovers();
+      }
+    });
+    $('bookList').addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' && e.target.classList.contains('title-input')) e.target.blur();
+    });
+    // Lazy chapter excerpts (toggle doesn't bubble, so listen while capturing)
+    $('bookList').addEventListener(
+      'toggle',
+      (e) => {
+        const d = e.target;
+        if (!d.open || d.dataset.sec === undefined) return;
+        const box = d.querySelector('.excerpt');
+        if (!box || box.dataset.done) return;
+        const parsed = d.dataset.book === 'combined' ? combinedParsed() : (S.books.find((b) => b.id === d.dataset.book) || {}).parsed;
+        const sec = parsed && parsed.sections[+d.dataset.sec];
+        if (sec) box.innerHTML = excerptHtml(sec);
+        box.dataset.done = '1';
+      },
+      true
+    );
+
+    // Action bar
+    $('convertBtn').addEventListener('click', convert);
+    $('shareAllBtn').addEventListener('click', () => shareEntities(jobs().filter((j) => j.result)));
+    $('zipBtn').addEventListener('click', () => saveEntities(jobs().filter((j) => j.result)));
+
+    // Sheet
+    $('sheet').addEventListener('click', (e) => {
+      if (e.target.closest('[data-close]')) return closeSheet();
+      const btn = e.target.closest('button');
+      if (btn && $('sheet')._onClick) $('sheet')._onClick(btn);
+    });
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && !$('sheet').hidden) closeSheet();
+    });
+    $('helpBtn').addEventListener('click', openHelp);
+
+    // Hide the sticky bar while typing (iOS keyboard pushes fixed elements around)
+    document.addEventListener('focusin', (e) => {
+      if (e.target.matches('input[type=text], textarea, .title-input')) document.body.classList.add('typing');
+    });
+    document.addEventListener('focusout', () => setTimeout(() => {
+      const a = document.activeElement;
+      if (!a || !a.matches('input[type=text], textarea, .title-input')) document.body.classList.remove('typing');
+    }, 50));
+
+    // Drag and drop (desktop, iPad)
+    let depth = 0;
+    const hasFiles = (e) => e.dataTransfer && [...(e.dataTransfer.types || [])].includes('Files');
+    document.addEventListener('dragenter', (e) => {
+      if (!hasFiles(e)) return;
+      e.preventDefault();
+      depth++;
+      $('dropOverlay').hidden = false;
+    });
+    document.addEventListener('dragover', (e) => {
+      if (hasFiles(e)) e.preventDefault();
+    });
+    document.addEventListener('dragleave', () => {
+      depth = Math.max(0, depth - 1);
+      if (!depth) $('dropOverlay').hidden = true;
+    });
+    document.addEventListener('drop', (e) => {
+      if (!hasFiles(e)) return;
+      e.preventDefault();
+      depth = 0;
+      $('dropOverlay').hidden = true;
+      if (e.dataTransfer.files.length) addFiles(e.dataTransfer.files);
+    });
+
+    Platform.onChange(renderAll);
+  }
+
+  // ------------------------------------------------------------ start
+  function start() {
+    fillSettingsUI();
+    bind();
+    Platform.init();
+    // Claude's host may attach itself a moment after load
+    window.addEventListener('load', () => {
+      Platform.init();
+      setTimeout(() => {
+        Platform.init();
+        Platform._resolved = true;
+        renderOffline();
+      }, 1500);
+    });
+    renderAll();
+  }
+
+  T2E.App = { state: S, addFiles, convert };
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', start);
+  else start();
+})((globalThis.T2E = globalThis.T2E || {}));
+
+</script>
+</body>
+</html>

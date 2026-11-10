@@ -1,0 +1,16 @@
+{
+  "name": "TXT to EPUB",
+  "short_name": "TXT→EPUB",
+  "description": "Turn plain text files into EPUB books on your phone. Works offline; nothing is uploaded.",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#f5f1ea",
+  "theme_color": "#f5f1ea",
+  "icons": [
+    { "src": "icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}
